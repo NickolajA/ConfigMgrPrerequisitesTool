@@ -61,7 +61,7 @@
                                 </DataGrid>
                                 <ProgressBar x:Name="progressBarSiteType" HorizontalAlignment="Left" Margin="0,365,0,0" VerticalAlignment="Top" Width="484" Height="28" Background="#FF252525"/>
                                 <Label x:Name="labelSiteTypeSelection" Content="Prepare this system for selected Site type:" HorizontalAlignment="Left" Margin="19,54,0,0" VerticalAlignment="Top" Width="238"/>
-                                <Label x:Name="labelSiteTypeProgress" Content="" HorizontalAlignment="Left" Margin="244,366,0,0" VerticalAlignment="Top"/>
+                                <Label x:Name="labelSiteTypeProgress" Content="" HorizontalAlignment="Left" Margin="233,366,0,0" VerticalAlignment="Top"/>
                             </Grid>
                         </TabItem>
                         <TabItem x:Name="tabItemPrereqFiles" Header="Prerequisite Files" Background="#FF333337">
@@ -180,11 +180,12 @@
                         </DataGrid.Columns>
                     </DataGrid>
                     <ProgressBar x:Name="progressBarRoles" HorizontalAlignment="Left" Margin="17,428,0,0" VerticalAlignment="Top" Width="484" Height="28" Background="#FF252525"/>
-                    <Label x:Name="labelRolesSelection" Content="Prepare this system for selected Site type:" HorizontalAlignment="Left" Margin="36,61,0,0" VerticalAlignment="Top" Width="238"/>
+                    <Label x:Name="labelRolesSelection" Content="Prepare this system for selected Site System role:" HorizontalAlignment="Left" Margin="36,61,0,0" VerticalAlignment="Top" Width="285"/>
                     <RadioButton x:Name="radioButtonRolesLocal" Content="Local system" HorizontalAlignment="Left" Margin="41,102,0,0" VerticalAlignment="Top" IsChecked="True" Checked="RolesLocalSystem_Checked"/>
                     <RadioButton x:Name="radioButtonRolesRemote" Content="Remote system:" HorizontalAlignment="Left" Margin="41,138,0,0" VerticalAlignment="Top" Checked="RolesRemoteSystem_Checked"/>
-                    <CheckBox x:Name="checkBoxRolesCreds" Content="Use alternate credentials" HorizontalAlignment="Left" Margin="420,103,0,0" VerticalAlignment="Top" Width="192" Checked="RolesCreds_Checked"/>
+                    <CheckBox x:Name="checkBoxRolesCreds" Content="Use alternate credentials" HorizontalAlignment="Left" Margin="420,103,0,0" VerticalAlignment="Top" Width="192" Checked="RolesCreds_Checked" IsEnabled="False"/>
                     <TextBox x:Name="textBoxRolesRemoteSystem" HorizontalAlignment="Left" Height="23" Margin="181,134,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="393" IsEnabled="False"/>
+                    <Label x:Name="labelRolesProgress" Content="" HorizontalAlignment="Left" Margin="249,428,0,0" VerticalAlignment="Top"/>
                 </Grid>
             </TabItem>
             <TabItem x:Name="tabItemAD" Header="Directory" HorizontalAlignment="Left">

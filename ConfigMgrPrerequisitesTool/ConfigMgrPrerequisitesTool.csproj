@@ -100,6 +100,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="ActiveDirectory.cs" />
     <Compile Include="FileSystem.cs" />
     <Compile Include="WindowsFeature.cs" />
     <Page Include="MainWindow.xaml">

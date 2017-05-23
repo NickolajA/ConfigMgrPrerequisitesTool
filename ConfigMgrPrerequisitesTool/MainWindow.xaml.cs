@@ -59,6 +59,10 @@ namespace ConfigMgrPrerequisitesTool
                     string[] secondarySite = new string[] { "NET-Framework-Core", "BITS", "BITS-IIS-Ext", "BITS-Compact-Server", "RDC", "WAS-Process-Model", "WAS-Config-APIs", "WAS-Net-Environment", "Web-Server", "Web-ISAPI-Ext", "Web-Windows-Auth", "Web-Basic-Auth", "Web-URL-Auth", "Web-IP-Security", "Web-Scripting-Tools", "Web-Mgmt-Service", "Web-Metabase", "Web-WMI" };
                     featureList.AddRange(secondarySite);
                     break;
+                case "Management Point":
+                    string[] managementPoint = new string[] { "NET-Framework-Core", "NET-Framework-45-Features", "NET-Framework-45-Core", "NET-WCF-TCP-PortSharing45", "NET-WCF-Services45", "BITS", "BITS-IIS-Ext", "BITS-Compact-Server", "RSAT-Bits-Server", "Web-Server", "Web-WebServer", "Web-ISAPI-Ext", "Web-WMI", "Web-Metabase", "Web-Windows-Auth", "Web-ASP", "Web-Asp-Net", "Web-Asp-Net45" };
+                    featureList.AddRange(managementPoint);
+                    break;
             }
 
             return featureList;
@@ -92,10 +96,23 @@ namespace ConfigMgrPrerequisitesTool
             }
         }
 
+        private string[] GetRemoteServers()
+        {
+            //' Construct string separator
+            string[] separator = new string[] { "," };
+            string[] remoteServers = null;
+
+            //' Replace space chars and split
+            if (textBoxRolesRemoteSystem.Text.Length >= 1)
+            {
+                remoteServers = textBoxRolesRemoteSystem.Text.Replace(" ", "").Split(separator, StringSplitOptions.RemoveEmptyEntries);
+            }
+
+            return remoteServers;
+        }
+
         async public void ShowMessageBox(string title, string message)
         {
-            //DialogResult messageBox = System.Windows.Forms.MessageBox.Show(message, "ConfigMgr Prerequisites Tool", MessageBoxButtons.OK, icon);
-
             //' Construct new metro dialog settings
             MetroDialogSettings settings = new MetroDialogSettings();
             settings.AffirmativeButtonText = "Continue";
@@ -137,9 +154,12 @@ namespace ConfigMgrPrerequisitesTool
                 object installResult = await scriptEngine.AddWindowsFeature(feature);
 
                 //' Update current row on data grid
-                var currentCollectionItem = siteTypeCollection.FirstOrDefault(winFeature => winFeature.Name == feature);
-                currentCollectionItem.Progress = false;
-                currentCollectionItem.Result = installResult.ToString();
+                if (!String.IsNullOrEmpty(installResult.ToString()))
+                {
+                    var currentCollectionItem = siteTypeCollection.FirstOrDefault(winFeature => winFeature.Name == feature);
+                    currentCollectionItem.Progress = false;
+                    currentCollectionItem.Result = installResult.ToString();
+                }
 
                 //' Set color of progressbar
                 // new prop needed for binding
@@ -160,51 +180,126 @@ namespace ConfigMgrPrerequisitesTool
                 WSManConnectionInfo connectionInfo = null;
                 Runspace runspace = null;
 
-                /////// foreach server in textbox needs to be added
+                //' Get windows features for selected site system role
+                List<string> featureList = GetWindowsFeatures(comboBoxRolesSelection.SelectedItem.ToString());
 
-                //' Determine whether to use alternate credentials or not
-                if (checkBoxRolesCreds.IsChecked == true)
+                if (featureList != null && featureList.Count >= 1)
                 {
-                    if (psCredentials != null)
+
+                    //' Get list of servers to process
+                    string[] remoteServers = GetRemoteServers();
+
+                    if (remoteServers != null)
                     {
-                        connectionInfo = scriptEngine.NewWSManConnectionInfo("MP01.corp.scconfigmgr.com", psCredentials);
+                        foreach (string remoteServer in remoteServers)
+                        {
+
+                            //' Determine whether to use alternate credentials or not
+                            if (checkBoxRolesCreds.IsChecked == true)
+                            {
+                                if (psCredentials != null)
+                                {
+                                    connectionInfo = scriptEngine.NewWSManConnectionInfo(remoteServer, psCredentials);
+                                }
+                            }
+                            else
+                            {
+                                //////// needs verification for impersonate
+
+                                connectionInfo = scriptEngine.NewWSManConnectionInfo(remoteServer, PSCredential.Empty);
+                            }
+
+                            //' Open a remote runspace using connection info
+                            if (connectionInfo != null)
+                            {
+                                runspace = scriptEngine.NewRunspace(connectionInfo);
+                                try
+                                {
+                                    runspace.Open();
+                                }
+                                catch (Exception ex)
+                                {
+                                    ShowMessageBox("ERROR", String.Format("{0}", ex.Message));
+                                }
+                            }
+
+                            if (runspace.RunspaceStateInfo.State == RunspaceState.Opened)
+                            {
+                                //' Update progress bar properties
+                                progressBarRoles.Maximum = featureList.Count - 1;
+                                int progressBarValue = 0;
+                                labelRolesProgress.Content = string.Empty;
+
+                                foreach (string feature in featureList)
+                                {
+                                    //' Update progress bar
+                                    progressBarRoles.Value = progressBarValue++;
+                                    labelRolesProgress.Content = String.Format("{0} / {1}", progressBarValue, featureList.Count);
+
+                                    //' Add new item for current windows feature installation state
+                                    rolesCollection.Add(new WindowsFeature { Server = remoteServer, Name = feature, Progress = true, Result = "Installing..." });
+                                    dataGridRoles.ScrollIntoView(rolesCollection[rolesCollection.Count - 1]);
+
+                                    //' Invoke windows feature installation via PowerShell runspace
+                                    object installResult = await scriptEngine.AddWindowsFeatureRemote(feature, runspace);
+
+                                    //' Update current row on data grid
+                                    if (!String.IsNullOrEmpty(installResult.ToString()))
+                                    {
+                                        var currentCollectionItem = rolesCollection.FirstOrDefault(winFeature => winFeature.Name == feature && winFeature.Server == remoteServer);
+                                        currentCollectionItem.Progress = false;
+                                        currentCollectionItem.Result = installResult.ToString();
+                                    }
+                                }
+
+                                //' Cleanup runspace
+                                runspace.Close();
+                            }
+                        }
+                    }
+                    else
+                    {
+                        ShowMessageBox("WARNING", "No remote servers was specified. Please specify at least one remote server.");
                     }
                 }
-                else
+            }
+
+            if (radioButtonRolesLocal.IsChecked == true)
+            {
+                //' Get windows features for selected site system role
+                List<string> featureList = GetWindowsFeatures(comboBoxRolesSelection.SelectedItem.ToString());
+
+                if (featureList != null && featureList.Count >= 1)
                 {
-                    //////// needs verification for impersonate
+                    //' Update progress bar properties
+                    progressBarRoles.Maximum = featureList.Count - 1;
+                    int progressBarValue = 0;
+                    labelRolesProgress.Content = string.Empty;
 
-                    connectionInfo = scriptEngine.NewWSManConnectionInfo("MP01.corp.scconfigmgr.com", PSCredential.Empty);
-                }
+                    //' Get local computer name
+                    string localComputer = System.Net.Dns.GetHostName();
 
-                //' Open a remote runspace using connection info
-                if (connectionInfo != null)
-                {
-                    runspace = scriptEngine.NewRunspace(connectionInfo);
-                    runspace.Open();
-                }
+                    foreach (string feature in featureList)
+                    {
+                        //' Update progress bar
+                        progressBarRoles.Value = progressBarValue++;
+                        labelRolesProgress.Content = String.Format("{0} / {1}", progressBarValue, featureList.Count);
 
-                if (runspace.RunspaceStateInfo.State == RunspaceState.Opened)
-                {
-                    // foreach here-ish
+                        //' Add new item for current windows feature installation state
+                        rolesCollection.Add(new WindowsFeature { Server = localComputer, Name = feature, Progress = true, Result = "Installing..." });
+                        dataGridRoles.ScrollIntoView(rolesCollection[rolesCollection.Count - 1]);
 
-                    //' Add new item for current windows feature installation state
-                    rolesCollection.Add(new WindowsFeature { Server = "MP01.corp.scconfigmgr.com", Name = "NET-Framework-Core", Progress = true, Result = "Installing..." });
-                    dataGridRoles.ScrollIntoView(rolesCollection[rolesCollection.Count - 1]);
+                        //' Invoke windows feature installation via PowerShell runspace
+                        object installResult = await scriptEngine.AddWindowsFeature(feature);
 
-                    //' Invoke windows feature installation via PowerShell runspace
-                    object installResult = await scriptEngine.AddWindowsFeatureRemote("NET-Framework-Core", runspace);
-
-                    //' Update current row on data grid
-                    var currentCollectionItem = rolesCollection.FirstOrDefault(winFeature => winFeature.Name == "NET-Framework-Core");
-                    currentCollectionItem.Progress = false;
-                    currentCollectionItem.Result = installResult.ToString();
-
-                    runspace.Close();
-                }
-                else
-                {
-                    ShowMessageBox("ERROR", "Unable to open connection to");
+                        //' Update current row on data grid
+                        if (!String.IsNullOrEmpty(installResult.ToString()))
+                        {
+                            var currentCollectionItem = rolesCollection.FirstOrDefault(winFeature => winFeature.Name == feature);
+                            currentCollectionItem.Progress = false;
+                            currentCollectionItem.Result = installResult.ToString();
+                        }
+                    }
                 }
             }
         }
@@ -298,12 +393,19 @@ namespace ConfigMgrPrerequisitesTool
 
         private void SitePrefFilesCreate_Click(object sender, RoutedEventArgs e)
         {
+            int volumeCount = 0;
             foreach (FileSystem volume in dataGridSitePrefFile.ItemsSource)
             {
                 if (volume.DriveSelected == true)
                 {
+                    volumeCount++;
                     fileSystem.NewNoSmsOnDriveFile(volume.DriveName);
                 }
+            }
+
+            if (volumeCount >= 1)
+            {
+                ShowMessageBox("FILE CREATION", @"Successfully created a NO_SMS_ON_DRIVE.SMS file on the selected drives.");
             }
         }
 
@@ -313,6 +415,11 @@ namespace ConfigMgrPrerequisitesTool
             {
                 textBoxRolesRemoteSystem.IsEnabled = true;
             }
+
+            if (checkBoxRolesCreds != null)
+            {
+                checkBoxRolesCreds.IsEnabled = true;
+            }
         }
 
         private void RolesLocalSystem_Checked(object sender, RoutedEventArgs e)
@@ -320,6 +427,11 @@ namespace ConfigMgrPrerequisitesTool
             if (textBoxRolesRemoteSystem != null)
             {
                 textBoxRolesRemoteSystem.IsEnabled = false;
+            }
+
+            if (checkBoxRolesCreds != null)
+            {
+                checkBoxRolesCreds.IsEnabled = false;
             }
         }
 
@@ -342,16 +454,16 @@ namespace ConfigMgrPrerequisitesTool
                     passwordBoxSettingsCredsPassword.Password = null;
                     textBoxSettingsCredsUserName.Text = null;
 
-                    ShowMessageBox("INFORMATION", "New credentials stored successfully");
+                    ShowMessageBox("CREDENTIALS", "New credentials stored successfully.");
                 }
                 else
                 {
-                    ShowMessageBox("WARNING", "Please enter a password");
+                    ShowMessageBox("WARNING", "Please enter a password.");
                 }
             }
             else
             {
-                ShowMessageBox("WARNING", "Please enter a username");
+                ShowMessageBox("WARNING", "Please enter a username.");
             }
         }
 
@@ -359,7 +471,7 @@ namespace ConfigMgrPrerequisitesTool
         {
             if (psCredentials == null)
             {
-                ShowMessageBox("WARNING", "No alternate credentials was found, please go to Settings and define your credentials");
+                ShowMessageBox("WARNING", "No alternate credentials was found, please go to Settings and define your credentials.");
 
                 //' Clear checkbox selection
                 System.Windows.Controls.CheckBox checkBox = sender as System.Windows.Controls.CheckBox;

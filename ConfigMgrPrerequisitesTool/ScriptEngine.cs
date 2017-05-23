@@ -40,6 +40,9 @@ namespace ConfigMgrPrerequisitesTool
             return installStatus;
         }
 
+        /// <summary>
+        ///  This method invokes Install-WindowsFeature PowerShell cmdlet on a remote runspace to install a specific feature.
+        /// </summary>
         async public Task<object> AddWindowsFeatureRemote(string featureName, Runspace runspace)
         {
             object installStatus = string.Empty;
