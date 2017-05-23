@@ -69,19 +69,19 @@
                                 <GroupBox x:Name="groupBoxSitePrereqBrowse" Header="Browse for download application" HorizontalAlignment="Left" Margin="0,10,0,0" VerticalAlignment="Top" Width="585" Height="133"/>
                                 <TextBox x:Name="textBoxSitePrereqBrowse" HorizontalAlignment="Left" Height="25" Margin="21,90,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="429"/>
                                 <Button x:Name="buttonSitePrereqBrowse" Content="Browse" HorizontalAlignment="Left" Margin="485,89,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="SitePrereqApplicationBrowse_Click"/>
-                                <Label x:Name="labelSitePrereqBrowse" Content="Browse SMSSETUP\BIN\X64 located on the installation media for and select SETUPDL.EXE:" HorizontalAlignment="Left" Margin="17,51,0,0" VerticalAlignment="Top"/>
-                                <GroupBox x:Name="groupBoxSitePrereqDownload" Header="Download prerequisite files for Configuration Manager setup" HorizontalAlignment="Left" Margin="0,158,0,0" VerticalAlignment="Top" Width="585" Height="198"/>
+                                <Label x:Name="labelSitePrereqBrowse" Content="Browse SMSSETUP\BIN\X64 located on the installation media and select SETUPDL.EXE:" HorizontalAlignment="Left" Margin="17,51,0,0" VerticalAlignment="Top"/>
+                                <GroupBox x:Name="groupBoxSitePrereqDownload" Header="Download prerequisite files for Configuration Manager setup" HorizontalAlignment="Left" Margin="0,158,0,0" VerticalAlignment="Top" Width="585" Height="129"/>
                                 <Label x:Name="labelSitePrereqDownload" Content="Specify a location where the prerequisite files will be downloaded:" HorizontalAlignment="Left" Margin="17,199,0,0" VerticalAlignment="Top"/>
                                 <TextBox x:Name="textBoxSitePrereqDownload" HorizontalAlignment="Left" Height="25" Margin="21,239,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="429"/>
                                 <Button x:Name="buttonSitePrereqDownload" Content="Browse" HorizontalAlignment="Left" Margin="485,238,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="SitePrereqLocationBrowse_Click"/>
-                                <Button x:Name="buttonSitePrereqStart" Content="Start" HorizontalAlignment="Left" Margin="485,298,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="SiteTypeInstall_Click"/>
-                                <ProgressBar x:Name="progressBarSitePrereq" HorizontalAlignment="Left" Margin="21,298,0,0" VerticalAlignment="Top" Width="429" Height="28" Background="#FF252525" IsIndeterminate="False"/>
+                                <Button x:Name="buttonSitePrereqStart" Content="Start" HorizontalAlignment="Left" Margin="510,365,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="SiteTypeInstall_Click" RenderTransformOrigin="0.911,0.429"/>
+                                <ProgressBar x:Name="progressBarSitePrereq" HorizontalAlignment="Left" Margin="0,365,0,0" VerticalAlignment="Top" Width="482" Height="28" Background="#FF252525" IsIndeterminate="False"/>
                             </Grid>
                         </TabItem>
                         <TabItem x:Name="tabItemPreference" Header="Preferences" Background="#FF333337">
                             <Grid Background="#FF333337">
-                                <GroupBox x:Name="groupBoxSitePrefFile" Header="Create NO__SMS__ON__DRIVE.SMS file" HorizontalAlignment="Left" Margin="0,10,0,0" VerticalAlignment="Top" Width="585" Height="160"/>
-                                <DataGrid x:Name="dataGridSitePrefFile" HorizontalAlignment="Left" Width="455" Margin="1,39,0,0" CanUserAddRows="False" SelectionMode="Single" AutoGenerateColumns="False" IsReadOnly="False" GridLinesVisibility="None" HeadersVisibility="Column" ColumnWidth="*" Background="#FF333337" LoadingRow="SitePreferenceFile_LoadingRow" Height="128" VerticalAlignment="Top">
+                                <GroupBox x:Name="groupBoxSitePrefFile" Header="Create NO__SMS__ON__DRIVE.SMS file" HorizontalAlignment="Left" Margin="0,10,0,0" VerticalAlignment="Top" Width="585" Height="330"/>
+                                <DataGrid x:Name="dataGridSitePrefFile" HorizontalAlignment="Left" Width="583" Margin="1,39,0,0" CanUserAddRows="False" SelectionMode="Single" AutoGenerateColumns="False" IsReadOnly="False" GridLinesVisibility="None" HeadersVisibility="Column" ColumnWidth="*" Background="#FF333337" LoadingRow="SitePreferenceFile_LoadingRow" Height="128" VerticalAlignment="Top">
                                     <DataGrid.Columns>
                                         <DataGridTemplateColumn Width="40" IsReadOnly="True">
                                             <DataGridTemplateColumn.Header>
@@ -93,14 +93,14 @@
                                                 </DataTemplate>
                                             </DataGridTemplateColumn.CellTemplate>
                                         </DataGridTemplateColumn>
-                                        <DataGridTextColumn Header="Drive" IsReadOnly="True" Binding="{Binding DriveName}" Width="65">
+                                        <DataGridTextColumn Header="Drive" IsReadOnly="True" Binding="{Binding DriveName}" Width="95">
                                             <DataGridTextColumn.ElementStyle>
                                                 <Style TargetType="{x:Type TextBlock}">
                                                     <Setter Property="Padding" Value="10 0 0 0"/>
                                                 </Style>
                                             </DataGridTextColumn.ElementStyle>
                                         </DataGridTextColumn>
-                                        <DataGridTextColumn Header="Volume Label" IsReadOnly="True" Binding="{Binding VolumeLabel}" Width="200">
+                                        <DataGridTextColumn Header="Volume Label" IsReadOnly="True" Binding="{Binding VolumeLabel}" Width="250">
                                             <DataGridTextColumn.ElementStyle>
                                                 <Style TargetType="{x:Type TextBlock}">
                                                     <Setter Property="Padding" Value="10 0 0 0"/>
@@ -116,7 +116,8 @@
                                         </DataGridTextColumn>
                                     </DataGrid.Columns>
                                 </DataGrid>
-                                <Button x:Name="buttonSitePrefFileCreate" Content="Create" HorizontalAlignment="Left" Margin="487,52,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="SitePrefFilesCreate_Click"/>
+                                <Button x:Name="buttonSitePrefFileCreate" Content="Create" HorizontalAlignment="Left" Margin="510,365,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="SitePrefFilesCreate_Click"/>
+                                <ProgressBar x:Name="progressBarPref" HorizontalAlignment="Left" Margin="0,365,0,0" VerticalAlignment="Top" Width="484" Height="28" Background="#FF252525"/>
                             </Grid>
                         </TabItem>
                     </TabControl>
@@ -200,7 +201,19 @@
                 <Grid Background="#FF333337" Margin="5,-10,-8,-0.333">
                     <TabControl x:Name="tabControlAD" HorizontalAlignment="Left" Height="456" Margin="14,9,0,0" VerticalAlignment="Top" Width="576" Background="#FF333337">
                         <TabItem x:Name="tabItemExtendAD"  Header="Schema" Background="#FF333337">
-                            <Grid Background="#FF333337" Margin="0,0,0,-0.333"/>
+                            <Grid Background="#FF333337" Margin="0,0,0,-0.333">
+                                <GroupBox x:Name="groupBoxADSchemaMaster" Header="Detect Schema master server" HorizontalAlignment="Left" Margin="0,10,-15,0" VerticalAlignment="Top" Width="585" Height="128"/>
+                                <CheckBox x:Name="checkBoxADSchemaCreds" Content="Use alternate credentials" Margin="339,370,70,0" VerticalAlignment="Top" Checked="RolesCreds_Checked"/>
+                                <GroupBox x:Name="groupBoxADSchemaFile" Header="Select schema extension application" HorizontalAlignment="Left" Margin="0,156,-15,0" VerticalAlignment="Top" Width="585" Height="132"/>
+                                <TextBox x:Name="textBoxADSchemaServer" HorizontalAlignment="Left" Height="23" Margin="29,89,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="351"/>
+                                <Button x:Name="buttonADSchemaDetect" Content="Detect" HorizontalAlignment="Left" Margin="408,88,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="SiteTypeInstall_Click"/>
+                                <Button x:Name="buttonADSchemaExtend" Content="Extend" HorizontalAlignment="Left" Margin="510,365,-15,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="SiteTypeInstall_Click"/>
+                                <ProgressBar x:Name="progressBarADSchema" HorizontalAlignment="Left" Margin="0,365,0,0" VerticalAlignment="Top" Width="321" Height="28" Background="#FF252525"/>
+                                <Label x:Name="labelADSchemaDetect" Content="Enter Schema Master role owner server or click detect for automatic detection:" HorizontalAlignment="Left" Margin="25,52,0,0" VerticalAlignment="Top"/>
+                                <TextBox x:Name="textBoxADSchemaFile" HorizontalAlignment="Left" Height="23" Margin="30,237,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="419"/>
+                                <Label x:Name="labelADSchemaFile" Content="Browse SMSSETUP\BIN\X64 located on the installation media and select EXTADSCH.EXE:" HorizontalAlignment="Left" Margin="25,199,0,0" VerticalAlignment="Top"/>
+                                <Button x:Name="buttonADSchemaBrowse" Content="Browse" HorizontalAlignment="Left" Margin="483,235,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="SiteTypeInstall_Click"/>
+                            </Grid>
                         </TabItem>
                         <TabItem x:Name="tabItemContainer" Header="System Management Container" Background="#FF333337">
                             <Grid Background="#FF333337"/>
