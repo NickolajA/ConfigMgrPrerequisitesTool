@@ -12,6 +12,7 @@ using System.IO;
 using System.Management.Automation;
 using System.Management.Automation.Runspaces;
 using MahApps.Metro.Controls.Dialogs;
+using System.ComponentModel;
 
 namespace ConfigMgrPrerequisitesTool
 {
@@ -19,6 +20,7 @@ namespace ConfigMgrPrerequisitesTool
     {
         ScriptEngine scriptEngine = new ScriptEngine();
         FileSystem fileSystem = new FileSystem();
+        DirectoryEngine activeDirectory = new DirectoryEngine();
 
         private ObservableCollection<WindowsFeature> siteTypeCollection = new ObservableCollection<WindowsFeature>();
         private ObservableCollection<FileSystem> sitePreferenceFileCollection = new ObservableCollection<FileSystem>();
@@ -111,6 +113,35 @@ namespace ConfigMgrPrerequisitesTool
             return remoteServers;
         }
 
+        private string GetApplicationPath(string applicationName)
+        {
+            string applicationPath = string.Empty;
+
+            using (OpenFileDialog browseDialog = new OpenFileDialog())
+            {
+                browseDialog.DefaultExt = ".exe";
+                browseDialog.Filter = @"All Files|*.*|Executable|*.exe";
+                browseDialog.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
+                browseDialog.FilterIndex = 2;
+
+                DialogResult dialogResult = browseDialog.ShowDialog();
+
+                if (dialogResult == System.Windows.Forms.DialogResult.OK && !String.IsNullOrEmpty(browseDialog.FileName))
+                {
+                    if (browseDialog.FileName.ToUpper().Contains(applicationName))
+                    {
+                        applicationPath = browseDialog.FileName;
+                    }
+                    else
+                    {
+                        ShowMessageBox("WARNING", String.Format(@"Incorrect file selection. Please select {0} in SMSSETUP\BIN\X64.", applicationName));
+                    }
+                }
+            }
+
+            return applicationPath;
+        }
+
         async public void ShowMessageBox(string title, string message)
         {
             //' Construct new metro dialog settings
@@ -193,7 +224,6 @@ namespace ConfigMgrPrerequisitesTool
                     {
                         foreach (string remoteServer in remoteServers)
                         {
-
                             //' Determine whether to use alternate credentials or not
                             if (checkBoxRolesCreds.IsChecked == true)
                             {
@@ -204,8 +234,6 @@ namespace ConfigMgrPrerequisitesTool
                             }
                             else
                             {
-                                //////// needs verification for impersonate
-
                                 connectionInfo = scriptEngine.NewWSManConnectionInfo(remoteServer, PSCredential.Empty);
                             }
 
@@ -476,6 +504,101 @@ namespace ConfigMgrPrerequisitesTool
                 //' Clear checkbox selection
                 System.Windows.Controls.CheckBox checkBox = sender as System.Windows.Controls.CheckBox;
                 checkBox.IsChecked = false;
+            }
+        }
+
+        private void DirectorySchemaCreds_Checked(object sender, RoutedEventArgs e)
+        {
+            if (psCredentials == null)
+            {
+                ShowMessageBox("WARNING", "No alternate credentials was found, please go to Settings and define your credentials.");
+
+                //' Clear checkbox selection
+                System.Windows.Controls.CheckBox checkBox = sender as System.Windows.Controls.CheckBox;
+                checkBox.IsChecked = false;
+            }
+        }
+
+        private void DirectorySchemaDetect_Click(object sender, RoutedEventArgs e)
+        {
+            //' Set schema master role owner in textbox
+            string schemaMaster = activeDirectory.GetSchemaMasterRoleOwner();
+            textBoxADSchemaServer.Text = schemaMaster;
+
+            //' Disable validate button
+            buttonADSchemaValidate.IsEnabled = false;
+        }
+
+        private void DirectorySchemaBrowse_Click(object sender, RoutedEventArgs e)
+        {
+            string applicationPath = GetApplicationPath("EXTADSCH.EXE");
+
+            if (!String.IsNullOrEmpty(applicationPath))
+            {
+                textBoxADSchemaFile.Text = applicationPath;
+                buttonADSchemaStage.IsEnabled = true;
+            }
+        }
+
+        private void DirectorySchemaValidate_Click(object sender, RoutedEventArgs e)
+        {
+            bool validationStatus = activeDirectory.ValidateSchemaMasterRoleOwner(textBoxADSchemaServer.Text);
+
+            if (validationStatus == true)
+            {
+                ShowMessageBox("SCHEMA MASTER", "Successfully validated specified domain controller as Schema Master role owner in the current forest.");
+                buttonADSchemaValidate.IsEnabled = false;
+            }
+            else
+            {
+                ShowMessageBox("ERROR", "Specified server is not the Schema Master role owner in the current forest. Please specify the correct domain controller or use the automatically detection operation.");
+            }
+        }
+
+        private void DirectorySchemaDetect_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (textBoxADSchemaServer != null)
+            {
+                if (textBoxADSchemaServer.Text.Length >= 1)
+                {
+                    buttonADSchemaValidate.IsEnabled = true;
+                }
+                else
+                {
+                    buttonADSchemaValidate.IsEnabled = false;
+                }
+            }
+        }
+
+        async private void DirectorySchemaExtend_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                //' ... run extadsch.exe
+            }
+            catch (Exception ex)
+            {
+                ShowMessageBox("ERROR", String.Format("{0}", ex.Message));
+            }
+        }
+
+        async private void DirectorySchemaStage_Click(object sender, RoutedEventArgs e)
+        {
+            //' Define variables for copy operation
+            string fileName = "extadsch.exe";
+            string localFile = textBoxADSchemaFile.Text;
+            string remoteFile = String.Format(@"\\{0}\C$\{1}", textBoxADSchemaServer.Text, fileName);
+
+            //' Copy the file to schema master admin share
+            try
+            {
+                progressBarADSchemaStage.IsIndeterminate = true;
+                await fileSystem.CopyFileAsync(localFile, remoteFile, System.Threading.CancellationToken.None);
+                progressBarADSchemaStage.IsIndeterminate = false;
+            }
+            catch (Exception ex)
+            {
+                ShowMessageBox("STAGE ERROR", String.Format("{0}", ex.Message));
             }
         }
     }

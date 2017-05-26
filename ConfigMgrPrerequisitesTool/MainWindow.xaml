@@ -199,20 +199,24 @@
                     </DataTemplate>
                 </TabItem.HeaderTemplate>
                 <Grid Background="#FF333337" Margin="5,-10,-8,-0.333">
-                    <TabControl x:Name="tabControlAD" HorizontalAlignment="Left" Height="456" Margin="14,9,0,0" VerticalAlignment="Top" Width="576" Background="#FF333337">
+                    <TabControl x:Name="tabControlAD" HorizontalAlignment="Left" Height="456" Margin="14,9,0,0" VerticalAlignment="Top" Width="597" Background="#FF333337">
                         <TabItem x:Name="tabItemExtendAD"  Header="Schema" Background="#FF333337">
                             <Grid Background="#FF333337" Margin="0,0,0,-0.333">
-                                <GroupBox x:Name="groupBoxADSchemaMaster" Header="Detect Schema master server" HorizontalAlignment="Left" Margin="0,10,-15,0" VerticalAlignment="Top" Width="585" Height="128"/>
-                                <CheckBox x:Name="checkBoxADSchemaCreds" Content="Use alternate credentials" Margin="339,370,70,0" VerticalAlignment="Top" Checked="RolesCreds_Checked"/>
-                                <GroupBox x:Name="groupBoxADSchemaFile" Header="Select schema extension application" HorizontalAlignment="Left" Margin="0,156,-15,0" VerticalAlignment="Top" Width="585" Height="132"/>
-                                <TextBox x:Name="textBoxADSchemaServer" HorizontalAlignment="Left" Height="23" Margin="29,89,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="351"/>
-                                <Button x:Name="buttonADSchemaDetect" Content="Detect" HorizontalAlignment="Left" Margin="408,88,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="SiteTypeInstall_Click"/>
-                                <Button x:Name="buttonADSchemaExtend" Content="Extend" HorizontalAlignment="Left" Margin="510,365,-15,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="SiteTypeInstall_Click"/>
+                                <GroupBox x:Name="groupBoxADSchemaMaster" Header="Detect Schema master domain controller and select application" HorizontalAlignment="Left" Margin="0,10,0,0" VerticalAlignment="Top" Width="585" Height="261"/>
+                                <CheckBox x:Name="checkBoxADSchemaCreds" Content="Use alternate credentials" Margin="339,370,70,0" VerticalAlignment="Top" Checked="DirectorySchemaCreds_Checked"/>
+                                <TextBox x:Name="textBoxADSchemaServer" HorizontalAlignment="Left" Height="23" Margin="29,89,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="346" TextChanged="DirectorySchemaDetect_TextChanged"/>
+                                <Button x:Name="buttonADSchemaDetect" Content="Detect" HorizontalAlignment="Left" Margin="483,88,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="DirectorySchemaDetect_Click"/>
+                                <Button x:Name="buttonADSchemaExtend" Content="Extend" HorizontalAlignment="Left" Margin="510,365,-15,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="DirectorySchemaExtend_Click"/>
                                 <ProgressBar x:Name="progressBarADSchema" HorizontalAlignment="Left" Margin="0,365,0,0" VerticalAlignment="Top" Width="321" Height="28" Background="#FF252525"/>
-                                <Label x:Name="labelADSchemaDetect" Content="Enter Schema Master role owner server or click detect for automatic detection:" HorizontalAlignment="Left" Margin="25,52,0,0" VerticalAlignment="Top"/>
-                                <TextBox x:Name="textBoxADSchemaFile" HorizontalAlignment="Left" Height="23" Margin="30,237,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="419"/>
-                                <Label x:Name="labelADSchemaFile" Content="Browse SMSSETUP\BIN\X64 located on the installation media and select EXTADSCH.EXE:" HorizontalAlignment="Left" Margin="25,199,0,0" VerticalAlignment="Top"/>
-                                <Button x:Name="buttonADSchemaBrowse" Content="Browse" HorizontalAlignment="Left" Margin="483,235,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="SiteTypeInstall_Click"/>
+                                <Label x:Name="labelADSchemaDetect" Content="Enter Schema Master role owner domain controller or click detect for automatic detection:" HorizontalAlignment="Left" Margin="25,52,0,0" VerticalAlignment="Top"/>
+                                <TextBox x:Name="textBoxADSchemaFile" HorizontalAlignment="Left" Height="23" Margin="30,186,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="345" IsEnabled="False"/>
+                                <TextBlock x:Name="textBlockADSchemaFile" HorizontalAlignment="Left" Margin="31,136,0,0" VerticalAlignment="Top" TextWrapping="WrapWithOverflow" Width="533" Height="36">
+                                    Browse SMSSETUP\BIN\X64 located on the installation media and select EXTADSCH.EXE. Click stage to copy the selected file to Schema Master domain controller:
+                                </TextBlock>
+                                <Button x:Name="buttonADSchemaBrowse" Content="Browse" HorizontalAlignment="Left" Margin="393,185,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="DirectorySchemaBrowse_Click"/>
+                                <Button x:Name="buttonADSchemaValidate" Content="Validate" HorizontalAlignment="Left" Margin="393,88,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="DirectorySchemaValidate_Click" IsEnabled="False"/>
+                                <Button x:Name="buttonADSchemaStage" Content="Stage" HorizontalAlignment="Left" Margin="483,185,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="DirectorySchemaStage_Click" IsEnabled="False"/>
+                                <ProgressBar x:Name="progressBarADSchemaStage" HorizontalAlignment="Left" Margin="30,226,0,0" VerticalAlignment="Top" Width="528" Height="14" Background="#FF252525"/>
                             </Grid>
                         </TabItem>
                         <TabItem x:Name="tabItemContainer" Header="System Management Container" Background="#FF333337">
@@ -242,16 +246,19 @@
                     </DataTemplate>
                 </TabItem.HeaderTemplate>
                 <Grid Background="#FF333337" Margin="5,-10,-8,-0.333">
-                    <TabControl x:Name="tabControlSQL" HorizontalAlignment="Left" Height="456" Margin="14,9,0,0" VerticalAlignment="Top" Width="576" Background="#FF333337">
+                    <TabControl x:Name="tabControlSQL" HorizontalAlignment="Left" Height="456" Margin="14,9,0,0" VerticalAlignment="Top" Width="597" Background="#FF333337">
                         <TabItem x:Name="tabItemSQLDB"  Header="Database" Background="#FF333337">
-                            <Grid Background="#FF333337"/>
+                            <Grid Background="#FF333337">
+                                <GroupBox x:Name="groupBoxSiteSelection_Copy" Header="Precreate Configuration Manager database" HorizontalAlignment="Left" Margin="0,10,-15,0" VerticalAlignment="Top" Width="585" Height="89"/>
+                                <GroupBox x:Name="groupBoxSiteSelection_Copy1" Header="tempDB configuration" HorizontalAlignment="Left" Margin="0,115,-15,0" VerticalAlignment="Top" Width="585" Height="89"/>
+                            </Grid>
                         </TabItem>
                         <TabItem x:Name="tabItemSQLConfig" Header="Server Configuration" Background="#FF333337">
                             <Grid Background="#FF333337"/>
                         </TabItem>
                         <TabItem x:Name="tabItemSQLCollation" Header="Collation" Background="#FF333337">
                             <Grid Background="#FF333337">
-                                <Label x:Name="label" Content="Check if proper collation is used for DB" HorizontalAlignment="Left" Margin="122,124,0,0" VerticalAlignment="Top"/>
+                                <Label x:Name="label" Content="Check if proper collation is used for SQL instance" HorizontalAlignment="Left" Margin="122,124,0,0" VerticalAlignment="Top"/>
                             </Grid>
                         </TabItem>
                     </TabControl>

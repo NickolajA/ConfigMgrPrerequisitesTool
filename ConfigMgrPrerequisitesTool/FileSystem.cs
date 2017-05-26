@@ -5,6 +5,8 @@ using System.Text;
 using System.Threading.Tasks;
 using System.IO;
 using System.ComponentModel;
+using System.Windows.Forms;
+using System.Threading;
 
 namespace ConfigMgrPrerequisitesTool
 {
@@ -46,7 +48,9 @@ namespace ConfigMgrPrerequisitesTool
         {
             string[] suffix = new string[] { "B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB" };
             int index = 0;
-            do { bytes /= 1024; index++; }
+            do {
+                bytes /= 1024; index++;
+            }
             while (bytes >= 1024);
 
             return String.Format("{0:0.00} {1}", bytes, suffix[index]);
@@ -59,7 +63,7 @@ namespace ConfigMgrPrerequisitesTool
 
         public string GetParentFolder(string path)
         {
-            return Directory.GetParent(path).FullName;
+            return System.IO.Directory.GetParent(path).FullName;
         }
 
         public List<FileSystem> GetVolumeInfo()
@@ -90,6 +94,18 @@ namespace ConfigMgrPrerequisitesTool
             {
                 FileStream fileStream = new FileStream(filePath, FileMode.Create);
             }
+        }
+
+        async public Task CopyFileAsync(string sourceFile, string destinationFile, CancellationToken cancellationToken)
+        {
+            var fileOptions = FileOptions.Asynchronous | FileOptions.SequentialScan;
+            var bufferSize = 4096;
+
+            using (var sourceStream = new FileStream(sourceFile, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize, fileOptions))
+
+            using (var destinationStream = new FileStream(destinationFile, FileMode.CreateNew, FileAccess.Write, FileShare.None, bufferSize, fileOptions))
+
+                await sourceStream.CopyToAsync(destinationStream, bufferSize, cancellationToken).ConfigureAwait(continueOnCapturedContext: false);
         }
     }
 }

@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using System.Management.Automation;
 using System.Collections.ObjectModel;
 using System.Management.Automation.Runspaces;
+using System.Runtime.Serialization;
+using System.Management.Automation.Remoting;
 
 namespace ConfigMgrPrerequisitesTool
 {
@@ -72,11 +74,66 @@ namespace ConfigMgrPrerequisitesTool
             return installStatus;
         }
 
+        async public Task<bool> CopyFileToRemoteServer(string filePath, string remoteServer, PSCredential credential)
+        {
+            bool transferStatus = false;
+
+            string hostName = System.Net.Dns.GetHostName();
+            WSManConnectionInfo connectionInfo = new WSManConnectionInfo(false, hostName, 5985, "/wsman", "http://schemas.microsoft.com/powershell/Microsoft.PowerShell", credential);
+            connectionInfo.AuthenticationMechanism = AuthenticationMechanism.Kerberos;
+
+            using (Runspace runspace = RunspaceFactory.CreateRunspace(connectionInfo))
+            {
+
+                runspace.Open();
+
+                using (PowerShell psInstance = PowerShell.Create())
+                {
+                    psInstance.Runspace = runspace;
+
+                    // https://stackoverflow.com/questions/17067260/invoke-powershell-command-from-c-sharp-with-different-credential
+
+                    //' Add command and parameter to PowerShell instance
+                    psInstance.AddCommand("New-PSDrive");
+                    psInstance.AddParameter("Name", "DC");
+                    psInstance.AddParameter("PSProvider", "FileSystem");
+                    psInstance.AddParameter("Root", String.Format(@"\\{0}\C$", remoteServer));
+
+                    psInstance.AddCommand("Copy-Item");
+                    psInstance.AddParameter("Path", filePath);
+                    psInstance.AddParameter("Destination", @"DC:\");
+                    //psInstance.AddParameter("Destination", String.Format(@"\\{0}\C$", remoteServer));
+                    psInstance.AddParameter("Force", true);
+
+                    //' Await for command to finish execution
+                    PSDataCollection<PSObject> cResult = await Task.Factory.FromAsync(psInstance.BeginInvoke(), psInstance.EndInvoke);
+                    //Collection<PSObject> processes = execRes.ReadAll();
+
+                    transferStatus = psInstance.HadErrors;
+                }
+
+                runspace.Close();
+            }
+
+
+            // Create PowerShell instance
+
+
+            return transferStatus;
+        }
+
         public Runspace NewRunspace(WSManConnectionInfo connectionInfo)
         {
             Runspace runspace = RunspaceFactory.CreateRunspace(connectionInfo);
 
             return runspace;
+        }
+
+        public WSManConnectionInfo NewLocalWSManConnectionInfo(PSCredential credential)
+        {
+            WSManConnectionInfo connectionInfo = new WSManConnectionInfo() { Credential = credential };
+
+            return connectionInfo;
         }
 
         public WSManConnectionInfo NewWSManConnectionInfo(string computer, PSCredential credentials)
@@ -86,6 +143,26 @@ namespace ConfigMgrPrerequisitesTool
             connectionInfo.OpenTimeout = 1 * 15 * 1000;
 
             return connectionInfo;
+        }
+    }
+
+    [Serializable]
+    internal class ScriptEngineException : Exception
+    {
+        public ScriptEngineException()
+        {
+        }
+
+        public ScriptEngineException(string message) : base(message)
+        {
+        }
+
+        public ScriptEngineException(string message, Exception innerException) : base(message, innerException)
+        {
+        }
+
+        protected ScriptEngineException(SerializationInfo info, StreamingContext context) : base(info, context)
+        {
         }
     }
 }
