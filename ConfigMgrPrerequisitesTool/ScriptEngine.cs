@@ -20,7 +20,7 @@ namespace ConfigMgrPrerequisitesTool
         {
             object installStatus = string.Empty;
 
-            // Create PowerShell instance
+            //' Create PowerShell instance
             using (PowerShell psInstance = PowerShell.Create())
             {
                 //' Add command and parameter to PowerShell instance
@@ -49,7 +49,7 @@ namespace ConfigMgrPrerequisitesTool
         {
             object installStatus = string.Empty;
 
-            // Create PowerShell instance
+            //' Create PowerShell instance
             using (PowerShell psInstance = PowerShell.Create())
             {
                 //' Set runspace
@@ -74,52 +74,33 @@ namespace ConfigMgrPrerequisitesTool
             return installStatus;
         }
 
-        async public Task<bool> CopyFileToRemoteServer(string filePath, string remoteServer, PSCredential credential)
+        /// <summary>
+        ///  This method invokes Start-Process PowerShell cmdlet on a remote runspace to run a local executable.
+        /// </summary>
+        async public Task<bool> StartProcessRemote(string filePath, Runspace runspace)
         {
-            bool transferStatus = false;
+            bool executionSuccess;
 
-            string hostName = System.Net.Dns.GetHostName();
-            WSManConnectionInfo connectionInfo = new WSManConnectionInfo(false, hostName, 5985, "/wsman", "http://schemas.microsoft.com/powershell/Microsoft.PowerShell", credential);
-            connectionInfo.AuthenticationMechanism = AuthenticationMechanism.Kerberos;
-
-            using (Runspace runspace = RunspaceFactory.CreateRunspace(connectionInfo))
+            //' Create PowerShell instance
+            using (PowerShell psInstance = PowerShell.Create())
             {
+                //' Set runspace
+                psInstance.Runspace = runspace;
 
-                runspace.Open();
+                //' Add command and parameter to PowerShell instance
+                psInstance.AddCommand("Start-Process");
+                psInstance.AddParameter("FilePath", filePath);
+                psInstance.AddParameter("Wait", true);
 
-                using (PowerShell psInstance = PowerShell.Create())
-                {
-                    psInstance.Runspace = runspace;
+                // Construct collection to hold pipeline stream objects
+                PSDataCollection<PSObject> streamCollection = new PSDataCollection<PSObject>();
 
-                    // https://stackoverflow.com/questions/17067260/invoke-powershell-command-from-c-sharp-with-different-credential
-
-                    //' Add command and parameter to PowerShell instance
-                    psInstance.AddCommand("New-PSDrive");
-                    psInstance.AddParameter("Name", "DC");
-                    psInstance.AddParameter("PSProvider", "FileSystem");
-                    psInstance.AddParameter("Root", String.Format(@"\\{0}\C$", remoteServer));
-
-                    psInstance.AddCommand("Copy-Item");
-                    psInstance.AddParameter("Path", filePath);
-                    psInstance.AddParameter("Destination", @"DC:\");
-                    //psInstance.AddParameter("Destination", String.Format(@"\\{0}\C$", remoteServer));
-                    psInstance.AddParameter("Force", true);
-
-                    //' Await for command to finish execution
-                    PSDataCollection<PSObject> cResult = await Task.Factory.FromAsync(psInstance.BeginInvoke(), psInstance.EndInvoke);
-                    //Collection<PSObject> processes = execRes.ReadAll();
-
-                    transferStatus = psInstance.HadErrors;
-                }
-
-                runspace.Close();
+                // Invoke execution on the pipeline and collection any errors
+                PSDataCollection<PSObject> tResult = await Task.Factory.FromAsync(psInstance.BeginInvoke<PSObject, PSObject>(null, streamCollection), pResult => psInstance.EndInvoke(pResult));
+                executionSuccess = psInstance.HadErrors;
             }
 
-
-            // Create PowerShell instance
-
-
-            return transferStatus;
+            return executionSuccess;
         }
 
         public Runspace NewRunspace(WSManConnectionInfo connectionInfo)
@@ -129,13 +110,6 @@ namespace ConfigMgrPrerequisitesTool
             return runspace;
         }
 
-        public WSManConnectionInfo NewLocalWSManConnectionInfo(PSCredential credential)
-        {
-            WSManConnectionInfo connectionInfo = new WSManConnectionInfo() { Credential = credential };
-
-            return connectionInfo;
-        }
-
         public WSManConnectionInfo NewWSManConnectionInfo(string computer, PSCredential credentials)
         {
             WSManConnectionInfo connectionInfo = new WSManConnectionInfo(false, computer, 5985, "/wsman", "http://schemas.microsoft.com/powershell/Microsoft.PowerShell", credentials);
@@ -143,26 +117,6 @@ namespace ConfigMgrPrerequisitesTool
             connectionInfo.OpenTimeout = 1 * 15 * 1000;
 
             return connectionInfo;
-        }
-    }
-
-    [Serializable]
-    internal class ScriptEngineException : Exception
-    {
-        public ScriptEngineException()
-        {
-        }
-
-        public ScriptEngineException(string message) : base(message)
-        {
-        }
-
-        public ScriptEngineException(string message, Exception innerException) : base(message, innerException)
-        {
-        }
-
-        protected ScriptEngineException(SerializationInfo info, StreamingContext context) : base(info, context)
-        {
         }
     }
 }

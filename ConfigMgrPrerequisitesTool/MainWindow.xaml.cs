@@ -548,10 +548,12 @@ namespace ConfigMgrPrerequisitesTool
             {
                 ShowMessageBox("SCHEMA MASTER", "Successfully validated specified domain controller as Schema Master role owner in the current forest.");
                 buttonADSchemaValidate.IsEnabled = false;
+                buttonADSchemaExtend.IsEnabled = true;
             }
             else
             {
                 ShowMessageBox("ERROR", "Specified server is not the Schema Master role owner in the current forest. Please specify the correct domain controller or use the automatically detection operation.");
+                buttonADSchemaExtend.IsEnabled = false;
             }
         }
 
@@ -559,9 +561,10 @@ namespace ConfigMgrPrerequisitesTool
         {
             if (textBoxADSchemaServer != null)
             {
-                if (textBoxADSchemaServer.Text.Length >= 1)
+                if (textBoxADSchemaServer.Text.Length >= 2)
                 {
                     buttonADSchemaValidate.IsEnabled = true;
+                    buttonADSchemaExtend.IsEnabled = false;
                 }
                 else
                 {
@@ -572,14 +575,63 @@ namespace ConfigMgrPrerequisitesTool
 
         async private void DirectorySchemaExtend_Click(object sender, RoutedEventArgs e)
         {
+            //' Start progress bar
+            progressBarADSchema.IsIndeterminate = true;
+
             try
             {
-                //' ... run extadsch.exe
+                WSManConnectionInfo connectionInfo = null;
+                Runspace runspace = null;
+                string remoteServer = textBoxADSchemaServer.Text;
+
+                //' Determine whether to use alternate credentials or not
+                if (checkBoxADSchemaCreds.IsChecked == true)
+                {
+                    if (psCredentials != null)
+                    {
+                        connectionInfo = scriptEngine.NewWSManConnectionInfo(remoteServer, psCredentials);
+                    }
+                }
+                else
+                {
+                    connectionInfo = scriptEngine.NewWSManConnectionInfo(remoteServer, PSCredential.Empty);
+                }
+
+                //' Open a remote runspace using connection info
+                if (connectionInfo != null)
+                {
+                    runspace = scriptEngine.NewRunspace(connectionInfo);
+                    try
+                    {
+                        runspace.Open();
+                    }
+                    catch (Exception ex)
+                    {
+                        ShowMessageBox("PowerShell Remoting error", String.Format("{0}", ex.Message));
+                    }
+                }
+
+                if (runspace.RunspaceStateInfo.State == RunspaceState.Opened)
+                {
+                    //' Run EXTADSCH.exe on schema master role owner domain controller
+                    bool executionResult = await scriptEngine.StartProcessRemote(@"C:\extadsch.exe", runspace);
+
+                    if (executionResult == false)
+                    {
+                        ShowMessageBox("SCHEMA EXTENSION", "Successfully extended Active Directory schema for Configuration Manager.");
+                    }
+
+                    //' Cleanup runspace
+                    runspace.Close();
+                }
             }
             catch (Exception ex)
             {
                 ShowMessageBox("ERROR", String.Format("{0}", ex.Message));
             }
+
+            //' Stop progress bar
+            progressBarADSchema.IsIndeterminate = false;
         }
 
         async private void DirectorySchemaStage_Click(object sender, RoutedEventArgs e)
@@ -594,12 +646,13 @@ namespace ConfigMgrPrerequisitesTool
             {
                 progressBarADSchemaStage.IsIndeterminate = true;
                 await fileSystem.CopyFileAsync(localFile, remoteFile, System.Threading.CancellationToken.None);
-                progressBarADSchemaStage.IsIndeterminate = false;
             }
             catch (Exception ex)
             {
                 ShowMessageBox("STAGE ERROR", String.Format("{0}", ex.Message));
             }
+
+            progressBarADSchemaStage.IsIndeterminate = false;
         }
     }
 }
