@@ -65,6 +65,30 @@ namespace ConfigMgrPrerequisitesTool
                     string[] managementPoint = new string[] { "NET-Framework-Core", "NET-Framework-45-Features", "NET-Framework-45-Core", "NET-WCF-TCP-PortSharing45", "NET-WCF-Services45", "BITS", "BITS-IIS-Ext", "BITS-Compact-Server", "RSAT-Bits-Server", "Web-Server", "Web-WebServer", "Web-ISAPI-Ext", "Web-WMI", "Web-Metabase", "Web-Windows-Auth", "Web-ASP", "Web-Asp-Net", "Web-Asp-Net45" };
                     featureList.AddRange(managementPoint);
                     break;
+                case "Distribution Point":
+                    string[] distributionPoint = new string[] { "FS-FileServer", "RDC", "Web-WebServer", "Web-Common-Http", "Web-Default-Doc", "Web-Dir-Browsing", "Web-Http-Errors", "Web-Static-Content", "Web-Http-Redirect", "Web-Health", "Web-Http-Logging", "Web-Performance", "Web-Stat-Compression", "Web-Security", "Web-Filtering", "Web-Windows-Auth", "Web-App-Dev", "Web-ISAPI-Ext", "Web-Mgmt-Tools", "Web-Mgmt-Console", "Web-Mgmt-Compat", "Web-Metabase", "Web-WMI", "Web-Scripting-Tools" };
+                    featureList.AddRange(distributionPoint);
+                    break;
+                case "Application Catalog":
+                    string[] appCatalog = new string[] { "NET-Framework-Features", "NET-Framework-Core", "NET-HTTP-Activation", "NET-Non-HTTP-Activ", "NET-WCF-Services45", "NET-WCF-HTTP-Activation45", "RDC", "WAS", "WAS-Process-Model", "WAS-NET-Environment", "WAS-Config-APIs", "Web-Server", "Web-WebServer", "Web-Common-Http", "Web-Static-Content", "Web-Default-Doc", "Web-App-Dev", "Web-ASP-Net", "Web-ASP-Net45", "Web-Net-Ext", "Web-Net-Ext45", "Web-ISAPI-Ext", "Web-ISAPI-Filter", "Web-Security", "Web-Windows-Auth", "Web-Filtering", "Web-Mgmt-Tools", "Web-Mgmt-Console", "Web-Scripting-Tools", "Web-Mgmt-Compat", "Web-Metabase", "Web-Lgcy-Mgmt-Console", "Web-Lgcy-Scripting", "Web-WMI" };
+                    featureList.AddRange(appCatalog);
+                    break;
+                case "State Migration Point":
+                    string[] migrationPoint = new string[] { "Web-Server", "Web-Common-Http", "Web-Default-Doc", "Web-Dir-Browsing", "Web-Http-Errors", "Web-Static-Content", "Web-Http-Logging", "Web-Dyn-Compression", "Web-Filtering", "Web-Windows-Auth", "Web-Mgmt-Tools", "Web-Mgmt-Console" };
+                    featureList.AddRange(migrationPoint);
+                    break;
+                case "Enrollment Point":
+                    string[] enrollmentPoint = new string[] { "Web-Server", "Web-WebServer", "Web-Default-Doc", "Web-Dir-Browsing", "Web-Http-Errors", "Web-Static-Content", "Web-Http-Logging", "Web-Stat-Compression", "Web-Filtering", "Web-Net-Ext", "Web-Asp-Net", "Web-ISAPI-Ext", "Web-ISAPI-Filter", "Web-Mgmt-Console", "Web-Metabase", "NET-Framework-Core", "NET-Framework-Features", "NET-HTTP-Activation", "NET-Framework-45-Features", "NET-Framework-45-Core", "NET-Framework-45-ASPNET", "NET-WCF-Services45", "NET-WCF-TCP-PortSharing45" };
+                    featureList.AddRange(enrollmentPoint);
+                    break;
+                case "Enrollment Proxy Point":
+                    string[] enrollmentProxyPoint = new string[] { "Web-Server", "Web-WebServer", "Web-Default-Doc", "Web-Dir-Browsing", "Web-Http-Errors", "Web-Static-Content", "Web-Http-Logging", "Web-Stat-Compression", "Web-Filtering", "Web-Windows-Auth", "Web-Net-Ext", "Web-Net-Ext45", "Web-Asp-Net", "Web-Asp-Net45", "Web-ISAPI-Ext", "Web-ISAPI-Filter", "Web-Mgmt-Console", "Web-Metabase", "NET-Framework-Core", "NET-Framework-Features", "NET-Framework-45-Features", "NET-Framework-45-Core", "NET-Framework-45-ASPNET", "NET-WCF-Services45", "NET-WCF-TCP-PortSharing45" };
+                    featureList.AddRange(enrollmentProxyPoint);
+                    break;
+                case "Certificate Registration Point":
+                    string[] certificatePoint = new string[] { "NET-Framework-45-Features", "NET-Framework-45-Core", "NET-Framework-45-ASPNET", "NET-WCF-Services45", "NET-WCF-HTTP-Activation45", "NET-WCF-TCP-PortSharing45", "Web-Server", "Web-WebServer", "Web-Common-Http", "Web-Default-Doc", "Web-Dir-Browsing", "Web-Http-Errors", "Web-Static-Content", "Web-Health", "Web-Http-Logging", "Web-Performance", "Web-Stat-Compression", "Web-Security", "Web-Filtering", "Web-Mgmt-Tools", "Web-Mgmt-Console", "Web-Mgmt-Compat", "Web-Metabase", "Web-WMI", "Web-App-Dev", "Web-Net-Ext45", "Web-Asp-Net45", "Web-ISAPI-Ext", "Web-ISAPI-Filter", "WAS", "WAS-Process-Model", "WAS-Config-APIs" };
+                    featureList.AddRange(certificatePoint);
+                    break;
             }
 
             return featureList;
