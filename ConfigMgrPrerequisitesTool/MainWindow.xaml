@@ -223,7 +223,7 @@
                                 <GroupBox x:Name="groupBoxADSContainerGroupSearch" Header="Search Active Directory group" HorizontalAlignment="Left" Margin="0,10,0,0" VerticalAlignment="Top" Width="585" Height="130"/>
                                 <GroupBox x:Name="groupBoxADContainerGroupResults" Header="Group results" HorizontalAlignment="Left" Margin="0,156,0,0" VerticalAlignment="Top" Width="585" Height="177"/>
                                 <Label x:Name="labelADContainerGroup" Content="Search for a group and add it to the System Management container:" HorizontalAlignment="Left" Margin="23,53,0,0" VerticalAlignment="Top"/>
-                                <Button x:Name="buttonADContainerCreate" Content="Configure" HorizontalAlignment="Left" Margin="506,364,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="DirectorySchemaDetect_Click"/>
+                                <Button x:Name="buttonADContainerConfigure" Content="Configure" HorizontalAlignment="Left" Margin="506,364,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="DirectorySchemaDetect_Click"/>
                                 <DataGrid x:Name="dataGridADContainer" HorizontalAlignment="Left" VerticalAlignment="Top" Height="147" Width="582" Margin="1,184,0,0" CanUserAddRows="False" SelectionMode="Single" AutoGenerateColumns="False" IsReadOnly="True" GridLinesVisibility="None" HeadersVisibility="Column" ColumnWidth="*" Background="#FF333337" LoadingRow="SiteType_LoadingRow">
                                     <DataGrid.Columns>
                                         <DataGridTemplateColumn Width="40" IsReadOnly="True">
@@ -233,14 +233,14 @@
                                                 </DataTemplate>
                                             </DataGridTemplateColumn.CellTemplate>
                                         </DataGridTemplateColumn>
-                                        <DataGridTextColumn Header="Display Name" IsReadOnly="True" Binding="{Binding DisplayName}" Width="295">
+                                        <DataGridTextColumn Header="Display Name" IsReadOnly="True" Binding="{Binding DisplayName}" Width="250">
                                             <DataGridTextColumn.ElementStyle>
                                                 <Style TargetType="{x:Type TextBlock}">
                                                     <Setter Property="Padding" Value="10 0 0 0"/>
                                                 </Style>
                                             </DataGridTextColumn.ElementStyle>
                                         </DataGridTextColumn>
-                                        <DataGridTextColumn Header="SamAccountName" IsReadOnly="True" Binding="{Binding SamAccountName}" Width="250">
+                                        <DataGridTextColumn Header="Distinguished Name" IsReadOnly="True" Binding="{Binding DistinguishedName}" Width="292">
                                             <DataGridTextColumn.ElementStyle>
                                                 <Style TargetType="{x:Type TextBlock}">
                                                     <Setter Property="Padding" Value="10 0 0 0"/>
@@ -250,9 +250,9 @@
                                     </DataGrid.Columns>
                                 </DataGrid>
                                 <TextBox x:Name="textBoxADContainerGroupSearch" HorizontalAlignment="Left" Height="23" Margin="26,89,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="414"/>
-                                <Button x:Name="buttonADContainerGroupSearch" Content="Search" HorizontalAlignment="Left" Margin="481,89,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="DirectorySchemaDetect_Click"/>
-                                <CheckBox x:Name="checkBox" Content="Create container" HorizontalAlignment="Left" Margin="376,370,0,0" VerticalAlignment="Top"/>
-                                <ProgressBar x:Name="progressBarADSchema_Copy" HorizontalAlignment="Left" Margin="0,365,0,0" VerticalAlignment="Top" Width="356" Height="28" Background="#FF252525"/>
+                                <Button x:Name="buttonADContainerGroupSearch" Content="Search" HorizontalAlignment="Left" Margin="481,89,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="DirectoryContainerSearch_Click"/>
+                                <CheckBox x:Name="checkBoxADContainerCreate" Content="Create container" HorizontalAlignment="Left" Margin="376,370,0,0" VerticalAlignment="Top"/>
+                                <ProgressBar x:Name="progressBarADContainer" HorizontalAlignment="Left" Margin="0,365,0,0" VerticalAlignment="Top" Width="356" Height="28" Background="#FF252525"/>
                             </Grid>
                         </TabItem>
                     </TabControl>

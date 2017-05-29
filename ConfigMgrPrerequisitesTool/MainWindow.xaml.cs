@@ -25,6 +25,7 @@ namespace ConfigMgrPrerequisitesTool
         private ObservableCollection<WindowsFeature> siteTypeCollection = new ObservableCollection<WindowsFeature>();
         private ObservableCollection<FileSystem> sitePreferenceFileCollection = new ObservableCollection<FileSystem>();
         private ObservableCollection<WindowsFeature> rolesCollection = new ObservableCollection<WindowsFeature>();
+        private ObservableCollection<DirectoryEngine> directoryContainerCollection = new ObservableCollection<DirectoryEngine>();
         private PSCredential psCredentials = null;
 
         public MainWindow()
@@ -35,6 +36,7 @@ namespace ConfigMgrPrerequisitesTool
             dataGridSiteType.ItemsSource = siteTypeCollection;
             dataGridSitePrefFile.ItemsSource = sitePreferenceFileCollection;
             dataGridRoles.ItemsSource = rolesCollection;
+            dataGridADContainer.ItemsSource = directoryContainerCollection;
 
             //' Load data into controls
             LoadGridSitePreferenceFile();
@@ -677,6 +679,22 @@ namespace ConfigMgrPrerequisitesTool
             }
 
             progressBarADSchemaStage.IsIndeterminate = false;
+        }
+
+        private void DirectoryContainerSearch_Click(object sender, RoutedEventArgs e)
+        {
+            //' Clear datagrid
+            if (dataGridADContainer.Items.Count >= 1)
+            {
+                directoryContainerCollection.Clear();
+            }
+
+            List<DirectoryEngine> searchResults = activeDirectory.InvokeADSearcher(textBoxADContainerGroupSearch.Text);
+
+            foreach (DirectoryEngine item in searchResults)
+            {
+                directoryContainerCollection.Add(new DirectoryEngine { DisplayName = item.DisplayName, ObjectSelected = item.ObjectSelected, SamAccountName = item.SamAccountName, DistinguishedName = item.DistinguishedName });
+            }
         }
     }
 }
