@@ -13,6 +13,8 @@ using System.Management.Automation;
 using System.Management.Automation.Runspaces;
 using MahApps.Metro.Controls.Dialogs;
 using System.ComponentModel;
+using System.DirectoryServices;
+using System.Threading.Tasks;
 
 namespace ConfigMgrPrerequisitesTool
 {
@@ -21,6 +23,7 @@ namespace ConfigMgrPrerequisitesTool
         ScriptEngine scriptEngine = new ScriptEngine();
         FileSystem fileSystem = new FileSystem();
         DirectoryEngine activeDirectory = new DirectoryEngine();
+        WebEngine webParser = new WebEngine();
 
         private ObservableCollection<WindowsFeature> siteTypeCollection = new ObservableCollection<WindowsFeature>();
         private ObservableCollection<FileSystem> sitePreferenceFileCollection = new ObservableCollection<FileSystem>();
@@ -36,14 +39,14 @@ namespace ConfigMgrPrerequisitesTool
             dataGridSiteType.ItemsSource = siteTypeCollection;
             dataGridSitePrefFile.ItemsSource = sitePreferenceFileCollection;
             dataGridRoles.ItemsSource = rolesCollection;
-            dataGridADContainer.ItemsSource = directoryContainerCollection;
+            dataGridADPermissions.ItemsSource = directoryContainerCollection;
 
             //' Load data into controls
             LoadGridSitePreferenceFile();
         }
 
         /// <summary>
-        /// Based on parameter input, returns a string array object containing the Windows Features required per Site typ.
+        ///  Based on parameter input, returns a string array object containing the Windows Features required per Site typ.
         /// </summary>
         private List<string> GetWindowsFeatures(string selection)
         {
@@ -96,15 +99,46 @@ namespace ConfigMgrPrerequisitesTool
             return featureList;
         }
 
-        private void DownloadPrereqFiles(string exePath, string location)
+        /// <summary>
+        ///  Invokes a new process and blocks the code awaiting this method by constructing a new 
+        ///  TaskCompletionSource, forcing the status of the underlying Task into the WaitingForActivation state.
+        ///  When SetResult is called, state of the Task changes to Completed, resulting in awaiting code to continue.
+        /// </summary>
+        public Task RunProcessAsync(ProcessStartInfo processInfo)
         {
-            // using?
-            ProcessStartInfo processInfo = new ProcessStartInfo("setupdl.exe", location);
-            processInfo.CreateNoWindow = true;
-            processInfo.WorkingDirectory = fileSystem.GetParentFolder(exePath);
-            processInfo.UseShellExecute = true;
-            processInfo.Verb = "Runas";
-            processInfo.WindowStyle = ProcessWindowStyle.Hidden;
+            //' Construct a new task completion source object to block awaiting code
+            TaskCompletionSource<object> source = new TaskCompletionSource<object>();
+
+            //' Construct the process object and handle exited event, when process has completed set result for task to null releasing the awaiting code to continue
+            Process process = new Process { EnableRaisingEvents = true, StartInfo = processInfo };
+            process.Exited += (sender, args) =>
+            {
+                if (process.ExitCode != 0)
+                {
+                    string errorMessage = process.StandardError.ReadToEnd();
+
+                    if (!String.IsNullOrEmpty(errorMessage))
+                    {
+                        source.SetException(new InvalidOperationException(String.Format("The prerequisite files download process did not exit correctly or was unexpectedly terminated. Please verify the downloaded files and start the download process again if necessary. Error message: {0}", process.StandardError.ReadToEnd())));
+                    }
+                    else
+                    {
+                        source.SetException(new InvalidOperationException("The prerequisite files download process did not exit correctly or was unexpectedly terminated. Please verify the downloaded files and start the download process again if necessary."));
+                    }
+                }
+                else
+                {
+                    source.SetResult(null);
+                }
+
+                //' Cleanup process object
+                process.Dispose();
+            };
+
+            //' Invoke the process
+            process.Start();
+
+            return source.Task;
         }
 
         private void LoadGridSitePreferenceFile()
@@ -178,6 +212,52 @@ namespace ConfigMgrPrerequisitesTool
             settings.AnimateShow = true;
 
             MessageDialogResult welcomeDialog = await this.ShowMessageAsync(title, message, MessageDialogStyle.Affirmative, settings);
+        }
+
+        private void ToggleSettingsSource_Click(object sender, RoutedEventArgs e)
+        {
+            if (toggleSettingsSource.IsChecked == true)
+            {
+                buttonSettingsSourceBrowse.IsEnabled = true;
+                textBoxSettingsSource.IsEnabled = true;
+            }
+            else
+            {
+                buttonSettingsSourceBrowse.IsEnabled = false;
+                textBoxSettingsSource.IsEnabled = false;
+            }
+        }
+
+        private void SettingsCredsAdd_Click(object sender, RoutedEventArgs e)
+        {
+            //' Clear existing credentials
+            if (psCredentials != null)
+            {
+                psCredentials = null;
+            }
+
+            if (!String.IsNullOrEmpty(textBoxSettingsCredsUserName.Text))
+            {
+                if (!String.IsNullOrEmpty(passwordBoxSettingsCredsPassword.Password))
+                {
+                    //' Construct new PSCredential
+                    psCredentials = new PSCredential(textBoxSettingsCredsUserName.Text, passwordBoxSettingsCredsPassword.SecurePassword);
+
+                    //' Clear controls
+                    passwordBoxSettingsCredsPassword.Password = null;
+                    textBoxSettingsCredsUserName.Text = null;
+
+                    ShowMessageBox("CREDENTIALS", "New credentials stored successfully.");
+                }
+                else
+                {
+                    ShowMessageBox("WARNING", "Please enter a password.");
+                }
+            }
+            else
+            {
+                ShowMessageBox("WARNING", "Please enter a username.");
+            }
         }
 
         async private void SiteTypeInstall_Click(object sender, RoutedEventArgs e)
@@ -370,20 +450,6 @@ namespace ConfigMgrPrerequisitesTool
             row.Background = (SolidColorBrush)new BrushConverter().ConvertFrom("#333337");
         }
 
-        private void ToggleSettingsSource_Click(object sender, RoutedEventArgs e)
-        {
-            if (toggleSettingsSource.IsChecked == true)
-            {
-                buttonSettingsSourceBrowse.IsEnabled = true;
-                textBoxSettingsSource.IsEnabled = true;
-            }
-            else
-            {
-                buttonSettingsSourceBrowse.IsEnabled = false;
-                textBoxSettingsSource.IsEnabled = false;
-            }
-        }
-
         private void SitePrereqApplicationBrowse_Click(object sender, RoutedEventArgs e)
         {
             using (OpenFileDialog browseDialog = new OpenFileDialog())
@@ -427,6 +493,29 @@ namespace ConfigMgrPrerequisitesTool
                     }
                 }
             }
+        }
+
+        async private void SitePrereqStart_Click(object sender, RoutedEventArgs e)
+        {
+            progressBarSitePrereq.IsIndeterminate = true;
+
+            ProcessStartInfo processStartInfo = new ProcessStartInfo();
+            processStartInfo.FileName = textBoxSitePrereqBrowse.Text;
+            processStartInfo.Arguments = textBoxSitePrereqDownload.Text;
+            processStartInfo.UseShellExecute = false;
+            processStartInfo.CreateNoWindow = true;
+            processStartInfo.RedirectStandardError = true;
+
+            try
+            {
+                await RunProcessAsync(processStartInfo);
+            }
+            catch (Exception ex)
+            {
+                ShowMessageBox("ERROR", String.Format("{0}", ex.Message));
+            }
+
+            progressBarSitePrereq.IsIndeterminate = false;
         }
 
         private void DataGridFilesSelectAll_Checked(object sender, RoutedEventArgs e)
@@ -489,38 +578,6 @@ namespace ConfigMgrPrerequisitesTool
             }
         }
 
-        private void SettingsCredsAdd_Click(object sender, RoutedEventArgs e)
-        {
-            //' Clear existing credentials
-            if (psCredentials != null)
-            {
-                psCredentials = null;
-            }
-
-            if (!String.IsNullOrEmpty(textBoxSettingsCredsUserName.Text))
-            {
-                if (!String.IsNullOrEmpty(passwordBoxSettingsCredsPassword.Password))
-                {
-                    //' Construct new PSCredential
-                    psCredentials = new PSCredential(textBoxSettingsCredsUserName.Text, passwordBoxSettingsCredsPassword.SecurePassword);
-
-                    //' Clear controls
-                    passwordBoxSettingsCredsPassword.Password = null;
-                    textBoxSettingsCredsUserName.Text = null;
-
-                    ShowMessageBox("CREDENTIALS", "New credentials stored successfully.");
-                }
-                else
-                {
-                    ShowMessageBox("WARNING", "Please enter a password.");
-                }
-            }
-            else
-            {
-                ShowMessageBox("WARNING", "Please enter a username.");
-            }
-        }
-
         private void RolesCreds_Checked(object sender, RoutedEventArgs e)
         {
             if (psCredentials == null)
@@ -547,12 +604,18 @@ namespace ConfigMgrPrerequisitesTool
 
         private void DirectorySchemaDetect_Click(object sender, RoutedEventArgs e)
         {
-            //' Set schema master role owner in textbox
+            //' Determine schema master
             string schemaMaster = activeDirectory.GetSchemaMasterRoleOwner();
-            textBoxADSchemaServer.Text = schemaMaster;
 
-            //' Disable validate button
-            buttonADSchemaValidate.IsEnabled = false;
+            if (!String.IsNullOrEmpty(schemaMaster))
+            {
+                //' Update textBox UI control with detected schema master
+                textBoxADSchemaServer.Text = schemaMaster;
+                
+                //' Handle UI button controls
+                buttonADSchemaValidate.IsEnabled = false;
+                buttonADSchemaExtend.IsEnabled = true;
+            }
         }
 
         private void DirectorySchemaBrowse_Click(object sender, RoutedEventArgs e)
@@ -681,20 +744,195 @@ namespace ConfigMgrPrerequisitesTool
             progressBarADSchemaStage.IsIndeterminate = false;
         }
 
-        private void DirectoryContainerSearch_Click(object sender, RoutedEventArgs e)
+        private void DirectoryContainerDetect_Click(object sender, RoutedEventArgs e)
+        {
+            string pdcEmulator = activeDirectory.GetPDCRoleOwner();
+
+            if (!String.IsNullOrEmpty(pdcEmulator))
+            {
+                //' Update textBox UI control
+                textBoxADContainerServer.Text = pdcEmulator;
+
+                //' Handle UI button controls
+                buttonADContainerValidate.IsEnabled = false;
+                buttonADContainerCreate.IsEnabled = true;
+            }
+        }
+
+        private void DirectoryContainerValidate_Click(object sender, RoutedEventArgs e)
+        {
+            bool validationStatus = activeDirectory.ValidatePDCRoleOwner(textBoxADContainerServer.Text);
+
+            if (validationStatus == true)
+            {
+                ShowMessageBox("PDC Emulator", "Successfully validated specified domain controller as PDC Emulator role owner in the current forest.");
+                buttonADContainerValidate.IsEnabled = false;
+                buttonADContainerCreate.IsEnabled = true;
+            }
+            else
+            {
+                ShowMessageBox("ERROR", "Specified server is not the PDC Emulator role owner in the current forest. Please specify the correct domain controller or use the automatically detection operation.");
+                buttonADContainerCreate.IsEnabled = false;
+            }
+        }
+
+        private void DirectoryContainer_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (textBoxADContainerServer != null)
+            {
+                if (textBoxADContainerServer.Text.Length >= 2)
+                {
+                    buttonADContainerValidate.IsEnabled = true;
+                    buttonADContainerCreate.IsEnabled = false;
+                }
+                else
+                {
+                    buttonADContainerValidate.IsEnabled = false;
+                }
+            }
+        }
+
+        private void DirectoryContainerCreds_Checked(object sender, RoutedEventArgs e)
+        {
+            if (psCredentials == null)
+            {
+                ShowMessageBox("WARNING", "No alternate credentials was found, please go to Settings and define your credentials.");
+
+                //' Clear checkbox selection
+                System.Windows.Controls.CheckBox checkBox = sender as System.Windows.Controls.CheckBox;
+                checkBox.IsChecked = false;
+            }
+        }
+
+        async private void DirectoryContainerCreate_Click(object sender, RoutedEventArgs e)
+        {
+            //' Check if System Management container exist
+            if (activeDirectory.CheckSystemManagementContainer() == false)
+            {
+                //' Attempt to create System Management container
+                WSManConnectionInfo connectionInfo = null;
+                Runspace runspace = null;
+                string remoteServer = activeDirectory.GetPDCRoleOwner();
+
+                //' Determine whether to use alternate credentials or not
+                if (checkBoxADContainerCreds.IsChecked == true)
+                {
+                    if (psCredentials != null)
+                    {
+                        connectionInfo = scriptEngine.NewWSManConnectionInfo(remoteServer, psCredentials);
+                    }
+                }
+                else
+                {
+                    connectionInfo = scriptEngine.NewWSManConnectionInfo(remoteServer, PSCredential.Empty);
+                }
+
+                //' Open a remote runspace using connection info
+                if (connectionInfo != null)
+                {
+                    runspace = scriptEngine.NewRunspace(connectionInfo);
+                    try
+                    {
+                        runspace.Open();
+                    }
+                    catch (Exception ex)
+                    {
+                        ShowMessageBox("PowerShell Remoting error", String.Format("{0}", ex.Message));
+                    }
+                }
+
+                if (runspace.RunspaceStateInfo.State == RunspaceState.Opened)
+                {
+                    try
+                    {
+                        bool result = await scriptEngine.NewADContainer(runspace);
+                    }
+                    catch (Exception ex)
+                    {
+                        ShowMessageBox("ERROR", String.Format("{0}", ex.Message));
+                    }
+
+                    //' Cleanup runspace
+                    runspace.Close();
+                }
+            }
+        }
+
+        private void DirectoryPermissionsSearch_Click(object sender, RoutedEventArgs e)
         {
             //' Clear datagrid
-            if (dataGridADContainer.Items.Count >= 1)
+            if (dataGridADPermissions.Items.Count >= 1)
             {
                 directoryContainerCollection.Clear();
             }
 
-            List<DirectoryEngine> searchResults = activeDirectory.InvokeADSearcher(textBoxADContainerGroupSearch.Text);
+            //' Construct new background worker
+            BackgroundWorker worker = new BackgroundWorker();
+            worker.DoWork += WorkerDoWork_PermissionSearch;
+            worker.RunWorkerCompleted += WorkerCompleted_PermissionSearch;
 
-            foreach (DirectoryEngine item in searchResults)
+            //' Invoke background worker
+            worker.RunWorkerAsync(textBoxADPermissionsGroupSearch.Text);
+        }
+
+        private void WorkerDoWork_PermissionSearch(object sender, DoWorkEventArgs e)
+        {
+            //' Catch arguments from run worker
+            string workerArgs = (string)e.Argument;
+
+            //' Invoke active directory searcher
+            List<DirectoryEngine> searchResults = activeDirectory.InvokeADSearcher(workerArgs);
+
+            //' Return search results
+            e.Result = searchResults;
+        }
+
+        private void WorkerCompleted_PermissionSearch(object sender, RunWorkerCompletedEventArgs e)
+        {
+            //' Collect search results
+            List<DirectoryEngine> result = (List<DirectoryEngine>)e.Result;
+
+            foreach (DirectoryEngine item in result)
             {
                 directoryContainerCollection.Add(new DirectoryEngine { DisplayName = item.DisplayName, ObjectSelected = item.ObjectSelected, SamAccountName = item.SamAccountName, DistinguishedName = item.DistinguishedName });
             }
+        }
+
+        private void DirectoryPermissionsConfigure_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void ADKOnlineLoadVersions_Click(object sender, RoutedEventArgs e)
+        {
+            List<WebEngine> links = webParser.LoadWindowsADKVersions();
+
+            if (links != null && links.Count >= 1)
+            {
+                foreach (WebEngine link in links)
+                {
+                    comboBoxADKOnlineVersion.Items.Add(link.LinkName);
+                    comboBoxADKOnlineVersion.SelectedIndex = 0;
+                }
+            }
+        }
+
+        private void ADKOnlineLocationBrowse_Click(object sender, RoutedEventArgs e)
+        {
+            using (FolderBrowserDialog folderBrowse = new FolderBrowserDialog())
+            {
+                DialogResult dialogResult = folderBrowse.ShowDialog();
+
+                if (dialogResult == System.Windows.Forms.DialogResult.OK && !String.IsNullOrEmpty(folderBrowse.SelectedPath))
+                {
+                    textBoxADKOnlineLocation.Text = folderBrowse.SelectedPath;
+                }
+            }
+        }
+
+        private void ADKOnlineInstall_Click(object sender, RoutedEventArgs e)
+        {
+
         }
     }
 }

@@ -17,11 +17,14 @@ namespace ConfigMgrPrerequisitesTool
 
         public string GetSchemaMasterRoleOwner()
         {
+            string schemaMaster = string.Empty;
+
             //' Get current forest and determine schema master role owner
             Forest forest = Forest.GetCurrentForest();
-            DomainController schemaMaster = forest.SchemaRoleOwner;
+            DomainController domainController = forest.SchemaRoleOwner;
+            schemaMaster = domainController.Name;
 
-            return schemaMaster.Name;
+            return schemaMaster;
         }
 
         public bool ValidateSchemaMasterRoleOwner(string serverName)
@@ -42,8 +45,10 @@ namespace ConfigMgrPrerequisitesTool
 
         public List<DirectoryEngine> InvokeADSearcher(string groupFilter)
         {
+            //' Construct list for all DirectoryEngine objects to be returned
             List<DirectoryEngine> directoryEntries = new List<DirectoryEngine>();
 
+            //' Construct active directory searcher and define loaded properties
             string searchFilter = String.Format(@"(&(ObjectCategory=group)(samAccountName=*{0}*))", groupFilter);
             DirectorySearcher searcher = new DirectorySearcher(searchFilter);
             searcher.Asynchronous = true;
@@ -51,6 +56,7 @@ namespace ConfigMgrPrerequisitesTool
             searcher.PropertiesToLoad.Add("cn");
             searcher.PropertiesToLoad.Add("distinguishedName");
 
+            //' Invoke active directory searcher
             SearchResultCollection results = searcher.FindAll();
 
             if (results != null)
@@ -67,6 +73,56 @@ namespace ConfigMgrPrerequisitesTool
             }
 
             return directoryEntries;
+        }
+
+        public string GetPDCRoleOwner()
+        {
+            string pdcEmulator = string.Empty;
+
+            //' Get current domain and determine PDC Emulator rolw owner
+            Domain domain = Domain.GetCurrentDomain();
+            DomainController domainController = domain.PdcRoleOwner;
+            pdcEmulator = domainController.Name;
+
+            return pdcEmulator;
+        }
+
+        public bool ValidatePDCRoleOwner(string serverName)
+        {
+            bool validationStatus = false;
+
+            //' Get current forest and determine PDC Emulator role owner
+            Domain domain = Domain.GetCurrentDomain();
+            DomainController domainController = domain.PdcRoleOwner;
+
+            if (serverName == domainController.Name)
+            {
+                validationStatus = true;
+            }
+
+            return validationStatus;
+        }
+
+        public bool CheckSystemManagementContainer()
+        {
+            bool checkStatus = false;
+
+            DirectoryEntry rootDSE = new DirectoryEntry("LDAP://RootDSE");
+            string defaultNamingContext = rootDSE.Properties["defaultNamingContext"].Value.ToString();
+
+            DirectoryEntry defaultEntry = new DirectoryEntry("LDAP://" + defaultNamingContext);
+            DirectorySearcher containerSearcher = new DirectorySearcher(defaultEntry, @"(&(ObjectCategory=container)(name=System Management))", null, SearchScope.Subtree);
+
+            SearchResult systemManagementContainer = containerSearcher.FindOne();
+
+            if (systemManagementContainer != null)
+            {
+                //' test to see if correct object or something
+
+                checkStatus = true;
+            }
+
+            return checkStatus;
         }
     }
 }

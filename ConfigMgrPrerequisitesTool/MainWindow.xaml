@@ -67,14 +67,14 @@
                         <TabItem x:Name="tabItemPrereqFiles" Header="Prerequisite Files" Background="#FF333337">
                             <Grid Background="#FF333337">
                                 <GroupBox x:Name="groupBoxSitePrereqBrowse" Header="Browse for download application" HorizontalAlignment="Left" Margin="0,10,0,0" VerticalAlignment="Top" Width="585" Height="133"/>
-                                <TextBox x:Name="textBoxSitePrereqBrowse" HorizontalAlignment="Left" Height="25" Margin="21,90,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="429"/>
+                                <TextBox x:Name="textBoxSitePrereqBrowse" HorizontalAlignment="Left" Height="25" Margin="21,90,0,0" TextWrapping="NoWrap" VerticalAlignment="Top" Width="429"/>
                                 <Button x:Name="buttonSitePrereqBrowse" Content="Browse" HorizontalAlignment="Left" Margin="485,89,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="SitePrereqApplicationBrowse_Click"/>
                                 <Label x:Name="labelSitePrereqBrowse" Content="Browse SMSSETUP\BIN\X64 located on the installation media and select SETUPDL.EXE:" HorizontalAlignment="Left" Margin="17,51,0,0" VerticalAlignment="Top"/>
                                 <GroupBox x:Name="groupBoxSitePrereqDownload" Header="Download prerequisite files for Configuration Manager setup" HorizontalAlignment="Left" Margin="0,158,0,0" VerticalAlignment="Top" Width="585" Height="129"/>
                                 <Label x:Name="labelSitePrereqDownload" Content="Specify a location where the prerequisite files will be downloaded:" HorizontalAlignment="Left" Margin="17,199,0,0" VerticalAlignment="Top"/>
                                 <TextBox x:Name="textBoxSitePrereqDownload" HorizontalAlignment="Left" Height="25" Margin="21,239,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="429"/>
                                 <Button x:Name="buttonSitePrereqDownload" Content="Browse" HorizontalAlignment="Left" Margin="485,238,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="SitePrereqLocationBrowse_Click"/>
-                                <Button x:Name="buttonSitePrereqStart" Content="Start" HorizontalAlignment="Left" Margin="510,365,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="SiteTypeInstall_Click" RenderTransformOrigin="0.911,0.429"/>
+                                <Button x:Name="buttonSitePrereqStart" Content="Start" HorizontalAlignment="Left" Margin="510,365,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="SitePrereqStart_Click" RenderTransformOrigin="0.911,0.429"/>
                                 <ProgressBar x:Name="progressBarSitePrereq" HorizontalAlignment="Left" Margin="0,365,0,0" VerticalAlignment="Top" Width="482" Height="28" Background="#FF252525" IsIndeterminate="False"/>
                             </Grid>
                         </TabItem>
@@ -218,13 +218,25 @@
                                 <ProgressBar x:Name="progressBarADSchemaStage" HorizontalAlignment="Left" Margin="30,226,0,0" VerticalAlignment="Top" Width="528" Height="14" Background="#FF252525"/>
                             </Grid>
                         </TabItem>
-                        <TabItem x:Name="tabItemContainer" Header="System Management Container" Background="#FF333337">
+                        <TabItem x:Name="tabItemContainer" Header="Container" Background="#FF333337">
                             <Grid Background="#FF333337">
-                                <GroupBox x:Name="groupBoxADSContainerGroupSearch" Header="Search Active Directory group" HorizontalAlignment="Left" Margin="0,10,0,0" VerticalAlignment="Top" Width="585" Height="130"/>
-                                <GroupBox x:Name="groupBoxADContainerGroupResults" Header="Group results" HorizontalAlignment="Left" Margin="0,156,0,0" VerticalAlignment="Top" Width="585" Height="177"/>
-                                <Label x:Name="labelADContainerGroup" Content="Search for a group and add it to the System Management container:" HorizontalAlignment="Left" Margin="23,53,0,0" VerticalAlignment="Top"/>
-                                <Button x:Name="buttonADContainerConfigure" Content="Configure" HorizontalAlignment="Left" Margin="506,364,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="DirectorySchemaDetect_Click"/>
-                                <DataGrid x:Name="dataGridADContainer" HorizontalAlignment="Left" VerticalAlignment="Top" Height="147" Width="582" Margin="1,184,0,0" CanUserAddRows="False" SelectionMode="Single" AutoGenerateColumns="False" IsReadOnly="True" GridLinesVisibility="None" HeadersVisibility="Column" ColumnWidth="*" Background="#FF333337" LoadingRow="SiteType_LoadingRow">
+                                <GroupBox x:Name="groupBoxADContainerServer" Header="Create System management container" HorizontalAlignment="Left" Margin="0,10,0,0" VerticalAlignment="Top" Width="585" Height="130"/>
+                                <TextBox x:Name="textBoxADContainerServer" HorizontalAlignment="Left" Height="23" Margin="29,89,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="346" TextChanged="DirectoryContainer_TextChanged"/>
+                                <Button x:Name="buttonADContainerDetect" Content="Detect" HorizontalAlignment="Left" Margin="483,88,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="DirectoryContainerDetect_Click"/>
+                                <Label x:Name="labelADContainerDetect" Content="Enter PDC Emulator role owner domain controller or click detect for automatic detection:" HorizontalAlignment="Left" Margin="25,52,0,0" VerticalAlignment="Top"/>
+                                <Button x:Name="buttonADContainerValidate" Content="Validate" HorizontalAlignment="Left" Margin="393,88,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="DirectoryContainerValidate_Click" IsEnabled="False"/>
+                                <CheckBox x:Name="checkBoxADContainerCreds" Content="Use alternate credentials" Margin="339,370,70,0" VerticalAlignment="Top" Checked="DirectoryContainerCreds_Checked"/>
+                                <Button x:Name="buttonADContainerCreate" Content="Create" HorizontalAlignment="Left" Margin="510,365,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" IsEnabled="False" Click="DirectoryContainerCreate_Click"/>
+                                <ProgressBar x:Name="progressBarADContainer" HorizontalAlignment="Left" Margin="0,365,0,0" VerticalAlignment="Top" Width="321" Height="28" Background="#FF252525"/>
+                            </Grid>
+                        </TabItem>
+                        <TabItem x:Name="tabItemPermissions" Header="Permissions" Background="#FF333337">
+                            <Grid Background="#FF333337">
+                                <GroupBox x:Name="groupBoxADPermissionsGroupSearch" Header="Search Active Directory group" HorizontalAlignment="Left" Margin="0,10,0,0" VerticalAlignment="Top" Width="585" Height="130"/>
+                                <GroupBox x:Name="groupBoxADPermissionsGroupResults" Header="Search results" HorizontalAlignment="Left" Margin="0,156,0,0" VerticalAlignment="Top" Width="585" Height="177"/>
+                                <Label x:Name="labelADPermissionsGroup" Content="Search for a group and add it to the System Management container:" HorizontalAlignment="Left" Margin="23,53,0,0" VerticalAlignment="Top"/>
+                                <Button x:Name="buttonADPermissionsConfigure" Content="Configure" HorizontalAlignment="Left" Margin="506,365,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="DirectoryPermissionsConfigure_Click"/>
+                                <DataGrid x:Name="dataGridADPermissions" HorizontalAlignment="Left" VerticalAlignment="Top" Height="147" Width="582" Margin="1,184,0,0" CanUserAddRows="False" SelectionMode="Single" AutoGenerateColumns="False" IsReadOnly="True" GridLinesVisibility="None" HeadersVisibility="Column" ColumnWidth="*" Background="#FF333337" LoadingRow="SiteType_LoadingRow" VerticalScrollBarVisibility="Visible">
                                     <DataGrid.Columns>
                                         <DataGridTemplateColumn Width="40" IsReadOnly="True">
                                             <DataGridTemplateColumn.CellTemplate>
@@ -240,7 +252,7 @@
                                                 </Style>
                                             </DataGridTextColumn.ElementStyle>
                                         </DataGridTextColumn>
-                                        <DataGridTextColumn Header="Distinguished Name" IsReadOnly="True" Binding="{Binding DistinguishedName}" Width="292">
+                                        <DataGridTextColumn Header="Distinguished Name" IsReadOnly="True" Binding="{Binding DistinguishedName}" Width="277">
                                             <DataGridTextColumn.ElementStyle>
                                                 <Style TargetType="{x:Type TextBlock}">
                                                     <Setter Property="Padding" Value="10 0 0 0"/>
@@ -249,10 +261,9 @@
                                         </DataGridTextColumn>
                                     </DataGrid.Columns>
                                 </DataGrid>
-                                <TextBox x:Name="textBoxADContainerGroupSearch" HorizontalAlignment="Left" Height="23" Margin="26,89,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="414"/>
-                                <Button x:Name="buttonADContainerGroupSearch" Content="Search" HorizontalAlignment="Left" Margin="481,89,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="DirectoryContainerSearch_Click"/>
-                                <CheckBox x:Name="checkBoxADContainerCreate" Content="Create container" HorizontalAlignment="Left" Margin="376,370,0,0" VerticalAlignment="Top"/>
-                                <ProgressBar x:Name="progressBarADContainer" HorizontalAlignment="Left" Margin="0,365,0,0" VerticalAlignment="Top" Width="356" Height="28" Background="#FF252525"/>
+                                <TextBox x:Name="textBoxADPermissionsGroupSearch" HorizontalAlignment="Left" Height="23" Margin="26,89,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="414"/>
+                                <Button x:Name="buttonADPermissionsGroupSearch" Content="Search" HorizontalAlignment="Left" Margin="481,89,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="DirectoryPermissionsSearch_Click"/>
+                                <ProgressBar x:Name="progressBarADPermissions" HorizontalAlignment="Left" Margin="0,365,0,0" VerticalAlignment="Top" Width="483" Height="28" Background="#FF252525"/>
                             </Grid>
                         </TabItem>
                     </TabControl>
@@ -267,7 +278,26 @@
                         </DockPanel>
                     </DataTemplate>
                 </TabItem.HeaderTemplate>
-                <Grid Background="#FF333337" Margin="5,-10,-8,-0.333"/>
+                <Grid Background="#FF333337" Margin="5,-10,-8,-0.333">
+                    <TabControl x:Name="tabControlADK" HorizontalAlignment="Left" Height="456" Margin="14,9,0,0" VerticalAlignment="Top" Width="597" Background="#FF333337">
+                        <TabItem x:Name="tabItemADKOnline"  Header="Online" Background="#FF333337">
+                            <Grid Background="#FF333337">
+                                <GroupBox x:Name="groupBoxADKOnlineDownload" Header="Download Windows ADK (requires internet acces)" HorizontalAlignment="Left" Margin="0,10,0,0" VerticalAlignment="Top" Width="585" Height="208"/>
+                                <ComboBox x:Name="comboBoxADKOnlineVersion" HorizontalAlignment="Left" Margin="195,63,0,0" VerticalAlignment="Top" Width="270"/>
+                                <Button x:Name="buttonADKOnlineInstall" Content="Install" HorizontalAlignment="Left" Margin="506,365,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="ADKOnlineInstall_Click"/>
+                                <ProgressBar x:Name="progressBarADKOnline" HorizontalAlignment="Left" Margin="0,365,0,0" VerticalAlignment="Top" Width="483" Height="28" Background="#FF252525"/>
+                                <Button x:Name="buttonADKOnlineLoad" Content="Load" HorizontalAlignment="Left" Margin="485,62,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="ADKOnlineLoadVersions_Click"/>
+                                <Label x:Name="labelADKOnlineSelect" Content="Select Windows ADK version:" HorizontalAlignment="Left" Margin="20,63,0,0" VerticalAlignment="Top"/>
+                                <Label x:Name="labelADKOnlineLocation" Content="Specify a location where the Windows ADK setup file will be downloaded:" HorizontalAlignment="Left" Margin="20,103,0,0" VerticalAlignment="Top"/>
+                                <TextBox x:Name="textBoxADKOnlineLocation" HorizontalAlignment="Left" Height="25" Margin="24,143,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="441"/>
+                                <Button x:Name="buttonADKOnlineBrowse" Content="Browse" HorizontalAlignment="Left" Margin="485,142,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="ADKOnlineLocationBrowse_Click"/>
+                            </Grid>
+                        </TabItem>
+                        <TabItem x:Name="tabItemADKOffline" Header="Offline" Background="#FF333337">
+                            <Grid Background="#FF333337"/>
+                        </TabItem>
+                    </TabControl>
+                </Grid>
             </TabItem>
             <TabItem x:Name="tabItemSQL" Header="SQL Server" HorizontalAlignment="Left">
                 <TabItem.HeaderTemplate>

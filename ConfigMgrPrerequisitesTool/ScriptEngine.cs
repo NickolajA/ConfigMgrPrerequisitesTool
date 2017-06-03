@@ -8,6 +8,8 @@ using System.Collections.ObjectModel;
 using System.Management.Automation.Runspaces;
 using System.Runtime.Serialization;
 using System.Management.Automation.Remoting;
+using System.Reflection;
+using System.IO;
 
 namespace ConfigMgrPrerequisitesTool
 {
@@ -91,6 +93,36 @@ namespace ConfigMgrPrerequisitesTool
                 psInstance.AddCommand("Start-Process");
                 psInstance.AddParameter("FilePath", filePath);
                 psInstance.AddParameter("Wait", true);
+
+                // Construct collection to hold pipeline stream objects
+                PSDataCollection<PSObject> streamCollection = new PSDataCollection<PSObject>();
+
+                // Invoke execution on the pipeline and collection any errors
+                PSDataCollection<PSObject> tResult = await Task.Factory.FromAsync(psInstance.BeginInvoke<PSObject, PSObject>(null, streamCollection), pResult => psInstance.EndInvoke(pResult));
+                executionSuccess = psInstance.HadErrors;
+            }
+
+            return executionSuccess;
+        }
+
+        async public Task<bool> NewADContainer(Runspace runspace)
+        {
+            bool executionSuccess;
+
+            //' Create PowerShell instance
+            using (PowerShell psInstance = PowerShell.Create())
+            {
+                //' Set runspace
+                psInstance.Runspace = runspace;
+
+                //' Add embedded PowerShell script file
+                Assembly assembly = Assembly.GetExecutingAssembly();
+                using (Stream stream = assembly.GetManifestResourceStream("ConfigMgrPrerequisitesTool.Scripts.CreateSystemManagementContainer.ps1"))
+                using (StreamReader reader = new StreamReader(stream))
+                {
+                    string result = reader.ReadToEnd();
+                    psInstance.AddScript(result);
+                }
 
                 // Construct collection to hold pipeline stream objects
                 PSDataCollection<PSObject> streamCollection = new PSDataCollection<PSObject>();
