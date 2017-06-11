@@ -107,6 +107,8 @@
     </ApplicationDefinition>
     <Compile Include="DirectoryEngine.cs" />
     <Compile Include="FileSystem.cs" />
+    <Compile Include="SqlEngine.cs" />
+    <Compile Include="VisualTreeHelpers.cs" />
     <Compile Include="WebEngine.cs" />
     <Compile Include="WindowsFeature.cs" />
     <Page Include="MainWindow.xaml">
@@ -166,6 +168,9 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Resources\Logo.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Scripts\SetSQLServerMemory.sql" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="..\packages\Fody.2.0.6\build\dotnet\Fody.targets" Condition="Exists('..\packages\Fody.2.0.6\build\dotnet\Fody.targets')" />

@@ -81,7 +81,7 @@
                         <TabItem x:Name="tabItemPreference" Header="Preferences" Background="#FF333337">
                             <Grid Background="#FF333337">
                                 <GroupBox x:Name="groupBoxSitePrefFile" Header="Create NO__SMS__ON__DRIVE.SMS file" HorizontalAlignment="Left" Margin="0,10,0,0" VerticalAlignment="Top" Width="585" Height="330"/>
-                                <DataGrid x:Name="dataGridSitePrefFile" HorizontalAlignment="Left" Width="583" Margin="1,39,0,0" CanUserAddRows="False" SelectionMode="Single" AutoGenerateColumns="False" IsReadOnly="False" GridLinesVisibility="None" HeadersVisibility="Column" ColumnWidth="*" Background="#FF333337" LoadingRow="SitePreferenceFile_LoadingRow" Height="128" VerticalAlignment="Top">
+                                <DataGrid x:Name="dataGridSitePrefFile" HorizontalAlignment="Left" Width="583" Margin="1,39,0,0" CanUserAddRows="False" SelectionMode="Single" AutoGenerateColumns="False" IsReadOnly="False" GridLinesVisibility="None" HeadersVisibility="Column" ColumnWidth="*" Background="#FF333337" LoadingRow="SitePreferenceFile_LoadingRow" Height="289" VerticalAlignment="Top">
                                     <DataGrid.Columns>
                                         <DataGridTemplateColumn Width="40" IsReadOnly="True">
                                             <DataGridTemplateColumn.Header>
@@ -89,7 +89,7 @@
                                             </DataGridTemplateColumn.Header>
                                             <DataGridTemplateColumn.CellTemplate>
                                                 <DataTemplate>
-                                                    <CheckBox Margin="9,0,0,0" IsChecked="{Binding DriveSelected}"/>
+                                                    <CheckBox Margin="9,0,0,0" Checked="FilesDataGridCheckBox_OnChecked"/>
                                                 </DataTemplate>
                                             </DataGridTemplateColumn.CellTemplate>
                                         </DataGridTemplateColumn>
@@ -241,7 +241,7 @@
                                         <DataGridTemplateColumn Width="40" IsReadOnly="True">
                                             <DataGridTemplateColumn.CellTemplate>
                                                 <DataTemplate>
-                                                    <CheckBox Margin="9,0,0,0" IsChecked="{Binding GroupSelected}"/>
+                                                    <CheckBox Margin="9,0,0,0" Checked="DirectoryPermissionsDataGridCheckBox_OnChecked"/>
                                                 </DataTemplate>
                                             </DataGridTemplateColumn.CellTemplate>
                                         </DataGridTemplateColumn>
@@ -282,19 +282,27 @@
                     <TabControl x:Name="tabControlADK" HorizontalAlignment="Left" Height="456" Margin="14,9,0,0" VerticalAlignment="Top" Width="597" Background="#FF333337">
                         <TabItem x:Name="tabItemADKOnline"  Header="Online" Background="#FF333337">
                             <Grid Background="#FF333337">
-                                <GroupBox x:Name="groupBoxADKOnlineDownload" Header="Download Windows ADK (requires internet acces)" HorizontalAlignment="Left" Margin="0,10,0,0" VerticalAlignment="Top" Width="585" Height="208"/>
-                                <ComboBox x:Name="comboBoxADKOnlineVersion" HorizontalAlignment="Left" Margin="195,63,0,0" VerticalAlignment="Top" Width="270"/>
-                                <Button x:Name="buttonADKOnlineInstall" Content="Install" HorizontalAlignment="Left" Margin="506,365,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="ADKOnlineInstall_Click"/>
+                                <GroupBox x:Name="groupBoxADKOnlineDownload" Header="Download Windows ADK (requires internet access)" HorizontalAlignment="Left" Margin="0,10,0,0" VerticalAlignment="Top" Width="585" Height="214"/>
+                                <ComboBox x:Name="comboBoxADKOnlineVersion" HorizontalAlignment="Left" Margin="195,63,0,0" VerticalAlignment="Top" Width="270" DisplayMemberPath="LinkName" SelectionChanged="ADKOnlineLoad_SelectionChanged"/>
+                                <Button x:Name="buttonADKOnlineInstall" Content="Install" HorizontalAlignment="Left" Margin="506,365,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="ADKOnlineInstall_Click" IsEnabled="False"/>
                                 <ProgressBar x:Name="progressBarADKOnline" HorizontalAlignment="Left" Margin="0,365,0,0" VerticalAlignment="Top" Width="483" Height="28" Background="#FF252525"/>
                                 <Button x:Name="buttonADKOnlineLoad" Content="Load" HorizontalAlignment="Left" Margin="485,62,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="ADKOnlineLoadVersions_Click"/>
                                 <Label x:Name="labelADKOnlineSelect" Content="Select Windows ADK version:" HorizontalAlignment="Left" Margin="20,63,0,0" VerticalAlignment="Top"/>
-                                <Label x:Name="labelADKOnlineLocation" Content="Specify a location where the Windows ADK setup file will be downloaded:" HorizontalAlignment="Left" Margin="20,103,0,0" VerticalAlignment="Top"/>
-                                <TextBox x:Name="textBoxADKOnlineLocation" HorizontalAlignment="Left" Height="25" Margin="24,143,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="441"/>
-                                <Button x:Name="buttonADKOnlineBrowse" Content="Browse" HorizontalAlignment="Left" Margin="485,142,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="ADKOnlineLocationBrowse_Click"/>
+                                <Label x:Name="labelADKOnlineLocation" Content="Specify a location where the Windows ADK setup file will be downloaded:" HorizontalAlignment="Left" Margin="20,132,0,0" VerticalAlignment="Top"/>
+                                <TextBox x:Name="textBoxADKOnlineLocation" HorizontalAlignment="Left" Height="25" Margin="24,172,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="441" Text="C:\Windows\Temp" TextChanged="ADKOnlineLocation_TextChanged"/>
+                                <Button x:Name="buttonADKOnlineBrowse" Content="Browse" HorizontalAlignment="Left" Margin="485,171,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="ADKOnlineLocationBrowse_Click"/>
+                                <ProgressBar x:Name="progressBarADKOnlineLoad" HorizontalAlignment="Left" Margin="24,103,0,0" VerticalAlignment="Top" Width="536" Height="14" Background="#FF252525"/>
                             </Grid>
                         </TabItem>
                         <TabItem x:Name="tabItemADKOffline" Header="Offline" Background="#FF333337">
-                            <Grid Background="#FF333337"/>
+                            <Grid Background="#FF333337">
+                                <GroupBox x:Name="groupBoxADKOffline" Header="Install Windows ADK offline" Margin="0,10,6,0" VerticalAlignment="Top" Height="135"/>
+                                <Button x:Name="buttonADKOfflineInstall" Content="Install" HorizontalAlignment="Left" Margin="506,365,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="ADKOfflineInstall_Click" IsEnabled="False"/>
+                                <ProgressBar x:Name="progressBarADKOffline" HorizontalAlignment="Left" Margin="0,365,0,0" VerticalAlignment="Top" Width="483" Height="28" Background="#FF252525"/>
+                                <Label x:Name="labelADKOfflineLocation" Content="Specify the local path containing the Windows ADK redistributable setup files:" HorizontalAlignment="Left" Margin="20,52,0,0" VerticalAlignment="Top"/>
+                                <TextBox x:Name="textBoxADKOfflineLocation" HorizontalAlignment="Left" Height="25" Margin="24,92,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="441" TextChanged="ADKOfflineLocation_TextChanged"/>
+                                <Button x:Name="buttonADKOfflineBrowse" Content="Browse" HorizontalAlignment="Left" Margin="485,91,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="ADKOfflineLocationBrowse_Click"/>
+                            </Grid>
                         </TabItem>
                     </TabControl>
                 </Grid>
@@ -310,18 +318,30 @@
                 </TabItem.HeaderTemplate>
                 <Grid Background="#FF333337" Margin="5,-10,-8,-0.333">
                     <TabControl x:Name="tabControlSQL" HorizontalAlignment="Left" Height="456" Margin="14,9,0,0" VerticalAlignment="Top" Width="597" Background="#FF333337">
+                        <TabItem x:Name="tabItemSQLGeneral"  Header="General" Background="#FF333337">
+                            <Grid Background="#FF333337">
+                                <GroupBox x:Name="groupBoxSQLGeneralMemory" Header="Configure SQL Server memory usage" HorizontalAlignment="Left" Margin="0,10,0,0" VerticalAlignment="Top" Width="585" Height="109">
+                                    <TextBox x:Name="textBoxSQLGeneralMaxMemory" HorizontalAlignment="Left" Height="23" Margin="25,20,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120"/>
+                                </GroupBox>
+                                <TextBox x:Name="textBoxSQLGeneralMinMemory" HorizontalAlignment="Left" Height="23" Margin="189,63,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120"/>
+                                <Button x:Name="buttonSQLGeneralMemoryConfigure" Content="Configure" HorizontalAlignment="Left" Margin="483,63,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="SQLServerGeneralMemoryConfigure_Click"/>
+
+                            </Grid>
+                        </TabItem>
                         <TabItem x:Name="tabItemSQLDB"  Header="Database" Background="#FF333337">
                             <Grid Background="#FF333337">
                                 <GroupBox x:Name="groupBoxSiteSelection_Copy" Header="Precreate Configuration Manager database" HorizontalAlignment="Left" Margin="0,10,-15,0" VerticalAlignment="Top" Width="585" Height="89"/>
                                 <GroupBox x:Name="groupBoxSiteSelection_Copy1" Header="tempDB configuration" HorizontalAlignment="Left" Margin="0,115,-15,0" VerticalAlignment="Top" Width="585" Height="89"/>
                             </Grid>
                         </TabItem>
-                        <TabItem x:Name="tabItemSQLConfig" Header="Server Configuration" Background="#FF333337">
-                            <Grid Background="#FF333337"/>
-                        </TabItem>
                         <TabItem x:Name="tabItemSQLCollation" Header="Collation" Background="#FF333337">
                             <Grid Background="#FF333337">
                                 <Label x:Name="label" Content="Check if proper collation is used for SQL instance" HorizontalAlignment="Left" Margin="122,124,0,0" VerticalAlignment="Top"/>
+                            </Grid>
+                        </TabItem>
+                        <TabItem x:Name="tabItemSQLTempDB" Header="TempDB" Background="#FF333337">
+                            <Grid Background="#FF333337">
+                                <GroupBox x:Name="groupBoxSiteSelection_Copy2" Header="Precreate Configuration Manager database" HorizontalAlignment="Left" Margin="0,10,0,0" VerticalAlignment="Top" Width="585" Height="89"/>
                             </Grid>
                         </TabItem>
                     </TabControl>
@@ -336,7 +356,9 @@
                         </DockPanel>
                     </DataTemplate>
                 </TabItem.HeaderTemplate>
-                <Grid Background="#FF333337" Margin="5,-10,-8,-0.333"/>
+                <Grid Background="#FF333337" Margin="5,-10,-8,-0.333">
+                    <GroupBox x:Name="groupBoxRolesSelection_Copy" Header="Site system role selection" HorizontalAlignment="Left" Margin="17,17,0,0" VerticalAlignment="Top" Width="585" Height="156"/>
+                </Grid>
             </TabItem>
             <TabItem x:Name="tabItemSettings"  Header="Settings" HorizontalAlignment="Left">
                 <TabItem.HeaderTemplate>
@@ -348,18 +370,42 @@
                     </DataTemplate>
                 </TabItem.HeaderTemplate>
                 <Grid Background="#FF333337" Margin="5,-10,-8,-0.333">
-                    <GroupBox x:Name="groupBoxSettingsSource" Header="Windows Feature Alternative Source Location" HorizontalAlignment="Left" Margin="18,21,0,0" VerticalAlignment="Top" Height="147" Width="583"/>
-                    <Controls:ToggleSwitch x:Name="toggleSettingsSource" Header="" OnLabel="" OffLabel="" Margin="195,35,49,376" Click="ToggleSettingsSource_Click"/>
-                    <Label x:Name="labelSettingsSource" Content="Specify an alternative source for Windows Feature installation (.wim file):" HorizontalAlignment="Left" Margin="43,67,0,0" VerticalAlignment="Top"/>
-                    <TextBox x:Name="textBoxSettingsSource" HorizontalAlignment="Left" Height="25" Margin="46,115,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="407" IsEnabled="False"/>
-                    <Button x:Name="buttonSettingsSourceBrowse" Content="Browse" HorizontalAlignment="Left" Margin="499,114,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" IsEnabled="False"/>
-                    <GroupBox x:Name="groupBoxSettingsCreds" Header="Enter credentials used for remote actions" HorizontalAlignment="Left" Margin="18,186,0,0" VerticalAlignment="Top" Height="147" Width="583"/>
-                    <TextBox x:Name="textBoxSettingsCredsUserName" HorizontalAlignment="Left" Height="23" Margin="125,273,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120"/>
-                    <PasswordBox x:Name="passwordBoxSettingsCredsPassword" HorizontalAlignment="Left" Margin="334,273,0,0" VerticalAlignment="Top" Width="119"/>
-                    <Button x:Name="buttonSettingsCredsAdd" Content="Add" HorizontalAlignment="Left" Margin="499,271,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="SettingsCredsAdd_Click"/>
-                    <Label x:Name="labelSettingsCreds" Content="Enter username and password to be used for remote actions when defined in the application:" HorizontalAlignment="Left" Margin="46,231,0,0" VerticalAlignment="Top"/>
-                    <Label x:Name="labelSettingsCredsUserName" Content="Username:" HorizontalAlignment="Left" Margin="46,273,0,0" VerticalAlignment="Top"/>
-                    <Label x:Name="labelSettingsCredsPassword" Content="Password:" HorizontalAlignment="Left" Margin="262,273,0,0" VerticalAlignment="Top"/>
+                    <TabControl x:Name="tabControlSettings" HorizontalAlignment="Left" Height="456" Margin="14,9,0,0" VerticalAlignment="Top" Width="597" Background="#FF333337">
+                        <TabItem x:Name="tabItemCreds"  Header="Credentials" Background="#FF333337">
+                            <Grid Background="#FF333337">
+                                <Controls:ToggleSwitch x:Name="toggleSettingsSource" Header="" OnLabel="" OffLabel="" Margin="195,35,49,376" Click="ToggleSettingsSource_Click"/>
+                                <GroupBox x:Name="groupBoxSettingsCreds" Header="Enter credentials used for remote actions" HorizontalAlignment="Left" Margin="0,10,0,0" VerticalAlignment="Top" Height="147" Width="583"/>
+                                <TextBox x:Name="textBoxSettingsCredsUserName" HorizontalAlignment="Left" Height="23" Margin="107,97,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120"/>
+                                <PasswordBox x:Name="passwordBoxSettingsCredsPassword" HorizontalAlignment="Left" Margin="316,97,0,0" VerticalAlignment="Top" Width="119"/>
+                                <Button x:Name="buttonSettingsCredsAdd" Content="Add" HorizontalAlignment="Left" Margin="481,95,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="SettingsCredsAdd_Click"/>
+                                <Label x:Name="labelSettingsCreds" Content="Enter username and password to be used for remote actions when defined in the application:" HorizontalAlignment="Left" Margin="28,55,0,0" VerticalAlignment="Top"/>
+                                <Label x:Name="labelSettingsCredsUserName" Content="Username:" HorizontalAlignment="Left" Margin="28,97,0,0" VerticalAlignment="Top"/>
+                                <Label x:Name="labelSettingsCredsPassword" Content="Password:" HorizontalAlignment="Left" Margin="244,97,0,0" VerticalAlignment="Top"/>
+                            </Grid>
+                        </TabItem>
+                        <TabItem x:Name="tabItemSources"  Header="Sources" Background="#FF333337">
+                            <Grid Background="#FF333337">
+                                <GroupBox x:Name="groupBoxSettingsSource" Header="Windows Feature Alternative Source Location" HorizontalAlignment="Left" Margin="0,10,0,0" VerticalAlignment="Top" Height="147" Width="583"/>
+                                <Label x:Name="labelSettingsSource" Content="Specify an alternative source for Windows Feature installation (.wim file):" HorizontalAlignment="Left" Margin="25,56,0,0" VerticalAlignment="Top"/>
+                                <TextBox x:Name="textBoxSettingsSource" HorizontalAlignment="Left" Height="25" Margin="28,104,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="407" IsEnabled="False"/>
+                                <Button x:Name="buttonSettingsSourceBrowse" Content="Browse" HorizontalAlignment="Left" Margin="481,103,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" IsEnabled="False"/>
+
+                            </Grid>
+                        </TabItem>
+                        <TabItem x:Name="tabItemSQLServer"  Header="SQL Server" Background="#FF333337">
+                            <Grid Background="#FF333337">
+                                <GroupBox x:Name="groupBoxSettingsSQLServer" Header="Connect to SQL Server" HorizontalAlignment="Left" Margin="0,10,0,0" VerticalAlignment="Top" Height="174" Width="583"/>
+                                <Button x:Name="buttonSettingsSQLServerConnect" Content="Connect" HorizontalAlignment="Left" Margin="481,62,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="SettingsSQLServerConnect_Click"/>
+                                <TextBox x:Name="textBoxSettingsSQLServerName" HorizontalAlignment="Left" Height="23" Margin="209,62,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="222"/>
+                                <TextBox x:Name="textBoxSettingsSQLServerInstance" HorizontalAlignment="Left" Height="23" Margin="209,102,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120"/>
+                                <Label x:Name="labelSettingsSQLServerInstance" Content="SQL Server instance (optional):" HorizontalAlignment="Left" Margin="25,102,0,0" VerticalAlignment="Top"/>
+                                <Label x:Name="labelSettingsSQLServerName" Content="SQL Server name (FQDN):" HorizontalAlignment="Left" Margin="25,62,0,0" VerticalAlignment="Top" Width="150"/>
+                                <ProgressBar x:Name="progressBarSettingsSQLServer" HorizontalAlignment="Left" Margin="28,143,0,0" VerticalAlignment="Top" Width="528" Height="14" Background="#FF252525"/>
+                                <Button x:Name="buttonSettingsSQLServerClose" Content="close" HorizontalAlignment="Left" Margin="481,101,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="SettingsSQLServerClose_Click" IsEnabled="False"/>
+
+                            </Grid>
+                        </TabItem>
+                    </TabControl>
                 </Grid>
             </TabItem>
         </TabControl>

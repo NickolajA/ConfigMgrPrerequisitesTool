@@ -6,30 +6,44 @@ using System.Windows.Controls;
 using System.Windows.Forms;
 using System.Windows.Media;
 using MahApps.Metro.Controls;
+using MahApps.Metro.Controls.Dialogs;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Management.Automation;
 using System.Management.Automation.Runspaces;
-using MahApps.Metro.Controls.Dialogs;
 using System.ComponentModel;
 using System.DirectoryServices;
 using System.Threading.Tasks;
+using System.Collections;
+using System.Data;
+using System.Net;
+using System.Data.SqlClient;
 
 namespace ConfigMgrPrerequisitesTool
 {
     public partial class MainWindow : MetroWindow
     {
+        //' Construct new class objects
         ScriptEngine scriptEngine = new ScriptEngine();
         FileSystem fileSystem = new FileSystem();
         DirectoryEngine activeDirectory = new DirectoryEngine();
         WebEngine webParser = new WebEngine();
+        SqlEngine sqlEngine = new SqlEngine();
 
+        //' Construct observable collections as datagrids item source
         private ObservableCollection<WindowsFeature> siteTypeCollection = new ObservableCollection<WindowsFeature>();
         private ObservableCollection<FileSystem> sitePreferenceFileCollection = new ObservableCollection<FileSystem>();
         private ObservableCollection<WindowsFeature> rolesCollection = new ObservableCollection<WindowsFeature>();
         private ObservableCollection<DirectoryEngine> directoryContainerCollection = new ObservableCollection<DirectoryEngine>();
+        private ObservableCollection<WebEngine> collectionADKOnline = new ObservableCollection<WebEngine>();
+
+        //' Initialize global Settings section objects
         private PSCredential psCredentials = null;
+        private SqlConnection sqlConnection = null;
+
+        //' Construct dictionaries
+        Dictionary<string, string> loadedADKversions = new Dictionary<string, string>();
 
         public MainWindow()
         {
@@ -40,6 +54,9 @@ namespace ConfigMgrPrerequisitesTool
             dataGridSitePrefFile.ItemsSource = sitePreferenceFileCollection;
             dataGridRoles.ItemsSource = rolesCollection;
             dataGridADPermissions.ItemsSource = directoryContainerCollection;
+
+            //' Set item source for combo boxes
+            comboBoxADKOnlineVersion.ItemsSource = collectionADKOnline;
 
             //' Load data into controls
             LoadGridSitePreferenceFile();
@@ -97,6 +114,13 @@ namespace ConfigMgrPrerequisitesTool
             }
 
             return featureList;
+        }
+
+        private string GetADKDownloadURL(string selection)
+        {
+            WebEngine link = collectionADKOnline.FirstOrDefault(version => version.LinkName == selection);
+
+            return link.LinkValue;
         }
 
         /// <summary>
@@ -202,6 +226,28 @@ namespace ConfigMgrPrerequisitesTool
             return applicationPath;
         }
 
+        async public Task DownloadFileAsync(string url, string location)
+        {
+            using (WebClient client = new WebClient())
+            {
+                client.DownloadProgressChanged += WebClient_DownloadProgressChanged;
+                client.DownloadFileCompleted += WebClient_DownloadFileCompleted;
+                await client.DownloadFileTaskAsync(new Uri(url), location);
+            }
+        }
+
+        private bool GetIsNetworkAvailable()
+        {
+            bool networkState = false;
+
+            if (System.Net.NetworkInformation.NetworkInterface.GetIsNetworkAvailable())
+            {
+                networkState = true;
+            }
+
+            return networkState;
+        }
+
         async public void ShowMessageBox(string title, string message)
         {
             //' Construct new metro dialog settings
@@ -225,6 +271,22 @@ namespace ConfigMgrPrerequisitesTool
             {
                 buttonSettingsSourceBrowse.IsEnabled = false;
                 textBoxSettingsSource.IsEnabled = false;
+            }
+        }
+
+        private void WebClient_DownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
+        {
+            progressBarADKOnline.Maximum = (int)e.TotalBytesToReceive / 100;
+            progressBarADKOnline.Value = (int)e.BytesReceived / 100;
+        }
+
+        private void WebClient_DownloadFileCompleted(object sender, AsyncCompletedEventArgs e)
+        {
+            progressBarADKOnline.Value = 0;
+
+            if (e.Error == null)
+            {
+                ShowMessageBox("SUCCESS", "Successfully downloaded the selected setup file. Installation will now continue.");
             }
         }
 
@@ -257,6 +319,51 @@ namespace ConfigMgrPrerequisitesTool
             else
             {
                 ShowMessageBox("WARNING", "Please enter a username.");
+            }
+        }
+
+        async private void SettingsSQLServerConnect_Click(object sender, RoutedEventArgs e)
+        {
+            progressBarSettingsSQLServer.IsIndeterminate = true;
+
+            //' Construct new SqlConnect object
+            sqlConnection = sqlEngine.NewSQLServerConnection(textBoxSettingsSQLServerName.Text, textBoxSettingsSQLServerInstance.Text);
+
+            //' Attempt to connect to SQL server
+            try
+            {
+                await sqlConnection.OpenAsync();
+
+                if (sqlConnection.State == ConnectionState.Open)
+                {
+                    ShowMessageBox("SUCCESS", "Successfully established a connection to the specified SQL Server.");
+
+                    //' Handle UI elements
+                    textBoxSettingsSQLServerName.IsEnabled = false;
+                    textBoxSettingsSQLServerInstance.IsEnabled = false;
+                    buttonSettingsSQLServerConnect.IsEnabled = false;
+                    buttonSettingsSQLServerClose.IsEnabled = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowMessageBox("ERROR", String.Format("{0}", ex.Message));
+            }
+
+            progressBarSettingsSQLServer.IsIndeterminate = false;
+        }
+
+        private void SettingsSQLServerClose_Click(object sender, RoutedEventArgs e)
+        {
+            if (sqlConnection != null && sqlConnection.State == ConnectionState.Open)
+            {
+                sqlConnection.Close();
+
+                //' Handle UI elements
+                textBoxSettingsSQLServerName.IsEnabled = true;
+                textBoxSettingsSQLServerInstance.IsEnabled = true;
+                buttonSettingsSQLServerConnect.IsEnabled = true;
+                buttonSettingsSQLServerClose.IsEnabled = false;
             }
         }
 
@@ -520,29 +627,57 @@ namespace ConfigMgrPrerequisitesTool
 
         private void DataGridFilesSelectAll_Checked(object sender, RoutedEventArgs e)
         {
-            foreach (FileSystem volume in dataGridSitePrefFile.ItemsSource)
+            foreach (System.Windows.Controls.CheckBox checkBox in VisualTreeHelpers.FindChildren<System.Windows.Controls.CheckBox>(dataGridSitePrefFile))
             {
-                volume.DriveSelected = true;
+                if (checkBox.IsChecked == false)
+                {
+                    checkBox.IsChecked = true;
+                }
             }
         }
 
         private void DataGridFilesSelectAll_Unchecked(object sender, RoutedEventArgs e)
         {
-            foreach (FileSystem volume in dataGridSitePrefFile.ItemsSource)
+            foreach (System.Windows.Controls.CheckBox checkBox in VisualTreeHelpers.FindChildren<System.Windows.Controls.CheckBox>(dataGridSitePrefFile))
             {
-                volume.DriveSelected = false;
+                if (checkBox.IsChecked == true)
+                {
+                    checkBox.IsChecked = false;
+                }
             }
         }
 
-        private void SitePrefFilesCreate_Click(object sender, RoutedEventArgs e)
+        private void FilesDataGridCheckBox_OnChecked(object sender, RoutedEventArgs e)
         {
+            System.Windows.Controls.CheckBox checkBox = (System.Windows.Controls.CheckBox)e.OriginalSource;
+            DataGridRow dataGridRow = VisualTreeHelpers.FindAncestor<DataGridRow>(checkBox);
+
+            FileSystem row = (FileSystem)dataGridRow.DataContext;
+
+            switch (checkBox.IsChecked)
+            {
+                case true:
+                    row.DriveSelected = true;
+                    break;
+                case false:
+                    row.DriveSelected = false;
+                    break;
+            }
+
+            e.Handled = true;
+        }
+
+        async private void SitePrefFilesCreate_Click(object sender, RoutedEventArgs e)
+        {
+            progressBarPref.IsIndeterminate = true;
+
             int volumeCount = 0;
             foreach (FileSystem volume in dataGridSitePrefFile.ItemsSource)
             {
                 if (volume.DriveSelected == true)
                 {
                     volumeCount++;
-                    fileSystem.NewNoSmsOnDriveFile(volume.DriveName);
+                    await fileSystem.WriteFileAsync(volume.DriveName, string.Empty);
                 }
             }
 
@@ -550,6 +685,8 @@ namespace ConfigMgrPrerequisitesTool
             {
                 ShowMessageBox("FILE CREATION", @"Successfully created a NO_SMS_ON_DRIVE.SMS file on the selected drives.");
             }
+
+            progressBarPref.IsIndeterminate = false;
         }
 
         private void RolesRemoteSystem_Checked(object sender, RoutedEventArgs e)
@@ -725,6 +862,8 @@ namespace ConfigMgrPrerequisitesTool
 
         async private void DirectorySchemaStage_Click(object sender, RoutedEventArgs e)
         {
+            progressBarADSchemaStage.IsIndeterminate = true;
+
             //' Define variables for copy operation
             string fileName = "extadsch.exe";
             string localFile = textBoxADSchemaFile.Text;
@@ -733,7 +872,6 @@ namespace ConfigMgrPrerequisitesTool
             //' Copy the file to schema master admin share
             try
             {
-                progressBarADSchemaStage.IsIndeterminate = true;
                 await fileSystem.CopyFileAsync(localFile, remoteFile, System.Threading.CancellationToken.None);
             }
             catch (Exception ex)
@@ -860,6 +998,8 @@ namespace ConfigMgrPrerequisitesTool
 
         private void DirectoryPermissionsSearch_Click(object sender, RoutedEventArgs e)
         {
+            progressBarADPermissions.IsIndeterminate = true;
+
             //' Clear datagrid
             if (dataGridADPermissions.Items.Count >= 1)
             {
@@ -896,25 +1036,107 @@ namespace ConfigMgrPrerequisitesTool
             {
                 directoryContainerCollection.Add(new DirectoryEngine { DisplayName = item.DisplayName, ObjectSelected = item.ObjectSelected, SamAccountName = item.SamAccountName, DistinguishedName = item.DistinguishedName });
             }
+
+            progressBarADPermissions.IsIndeterminate = false;
+        }
+
+        private void DirectoryPermissionsDataGridCheckBox_OnChecked(object sender, RoutedEventArgs e)
+        {
+            System.Windows.Controls.CheckBox checkBox = (System.Windows.Controls.CheckBox)e.OriginalSource;
+            DataGridRow dataGridRow = VisualTreeHelpers.FindAncestor<DataGridRow>(checkBox);
+
+            DirectoryEngine row = (DirectoryEngine)dataGridRow.DataContext;
+
+            switch (checkBox.IsChecked)
+            {
+                case true:
+                    row.ObjectSelected = true;
+                    break;
+                case false:
+                    row.ObjectSelected = false;
+                    break;
+            }
+
+            e.Handled = true;
         }
 
         private void DirectoryPermissionsConfigure_Click(object sender, RoutedEventArgs e)
         {
+            try
+            {
+                //' Get all selected groups
+                foreach (DirectoryEngine row in dataGridADPermissions.ItemsSource)
+                {
+                    if (row.ObjectSelected == true)
+                    {
+                        string groupSid = activeDirectory.GetADObjectSID(row.DistinguishedName);
+                        bool result = activeDirectory.AddOrganizationalUnitACL(groupSid);
 
+                        if (result == true)
+                        {
+                            ShowMessageBox("SUCCESS", String.Format("Successfully added permissions for System Management container with Active Directory group {0}", row.DisplayName));
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowMessageBox("ERROR", String.Format("{0}", ex.Message));
+            }
         }
 
         private void ADKOnlineLoadVersions_Click(object sender, RoutedEventArgs e)
         {
+            bool networkAvailable = GetIsNetworkAvailable();
+
+            if (networkAvailable == true)
+            {
+                progressBarADKOnlineLoad.IsIndeterminate = true;
+
+                if (comboBoxADKOnlineVersion.Items.Count >= 1)
+                {
+                    collectionADKOnline.Clear();
+                }
+
+                //' Construct new background worker
+                BackgroundWorker worker = new BackgroundWorker();
+                worker.DoWork += WorkerDoWork_ADKVersionOnlineSearch;
+                worker.RunWorkerCompleted += WorkerCompleted_ADKVersionOnlineSearch;
+
+                //' Invoke background worker
+                worker.RunWorkerAsync();
+            }
+            else
+            {
+                ShowMessageBox("INTERNET CONNECTIVITY", "A connection to internet could not be established, use offline installation method instead.");
+            }
+        }
+
+        private void WorkerDoWork_ADKVersionOnlineSearch(object sender, DoWorkEventArgs e)
+        {
+            //' Invoke web parser
             List<WebEngine> links = webParser.LoadWindowsADKVersions();
+
+            //' Return search results
+            e.Result = links;
+        }
+
+        private void WorkerCompleted_ADKVersionOnlineSearch(object sender, RunWorkerCompletedEventArgs e)
+        {
+            //' Collect search results
+            List<WebEngine> links = (List<WebEngine>)e.Result;
 
             if (links != null && links.Count >= 1)
             {
                 foreach (WebEngine link in links)
                 {
-                    comboBoxADKOnlineVersion.Items.Add(link.LinkName);
-                    comboBoxADKOnlineVersion.SelectedIndex = 0;
+                    collectionADKOnline.Add(new WebEngine { LinkName = link.LinkName, LinkValue = link.LinkValue});
                 }
+
+                comboBoxADKOnlineVersion.SelectedIndex = 0;
             }
+
+            progressBarADKOnlineLoad.IsIndeterminate = false;
         }
 
         private void ADKOnlineLocationBrowse_Click(object sender, RoutedEventArgs e)
@@ -929,10 +1151,141 @@ namespace ConfigMgrPrerequisitesTool
                 }
             }
         }
-
-        private void ADKOnlineInstall_Click(object sender, RoutedEventArgs e)
+        private void ADKOnlineLoad_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            if (comboBoxADKOnlineVersion.Items.Count >= 1)
+            {
+                buttonADKOnlineInstall.IsEnabled = true;
+            }
+        }
 
+        private void ADKOnlineLocation_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (collectionADKOnline.Count >= 1)
+            {
+                if (Directory.Exists(textBoxADKOnlineLocation.Text))
+                {
+                    buttonADKOnlineInstall.IsEnabled = true;
+                }
+                else
+                {
+                    buttonADKOnlineInstall.IsEnabled = false;
+                }
+            }
+        }
+
+        async private void ADKOnlineInstall_Click(object sender, RoutedEventArgs e)
+        {
+            //' Get link object from observable collection
+            WebEngine link = (WebEngine)comboBoxADKOnlineVersion.SelectedItem;
+
+            //' Combine download location with file name and download
+            string filePath = Path.Combine(textBoxADKOnlineLocation.Text, "adksetup.exe");
+
+            try {
+                await DownloadFileAsync(link.LinkValue, filePath);
+            }
+            catch (Exception ex)
+            {
+                ShowMessageBox("ERROR", String.Format("An error occured while downloading ADK setup bootstrap file. Error message: {0}", ex.Message));
+            }
+
+            //' Handle progress bar UI element
+            progressBarADKOnline.IsIndeterminate = true;
+
+            //' Invoke ADK setup bootstrap file if download successful
+            if (File.Exists(filePath))
+            {
+                ProcessStartInfo processStartInfo = new ProcessStartInfo();
+                processStartInfo.FileName = filePath;
+                processStartInfo.Arguments = @"/norestart /q /ceip off /features OptionId.WindowsPreinstallationEnvironment OptionId.DeploymentTools OptionId.UserStateMigrationTool";
+                processStartInfo.UseShellExecute = false;
+                processStartInfo.CreateNoWindow = true;
+                processStartInfo.RedirectStandardError = true;
+
+                try
+                {
+                    await RunProcessAsync(processStartInfo);
+                    ShowMessageBox("SUCCESS", "Successfully installed Windows ADK.");
+                }
+                catch (Exception ex)
+                {
+                    ShowMessageBox("ERROR", String.Format("An error occured while installing Windows ADK. Error message: {0}", ex.Message));
+                }
+            }
+            else
+            {
+                ShowMessageBox("FILE NOT FOUND", "Unable to locate ADK setup bootstrap file.");
+            }
+
+            //' Handle progress bar UI element
+            progressBarADKOnline.IsIndeterminate = false;
+        }
+
+        private void ADKOfflineLocationBrowse_Click(object sender, RoutedEventArgs e)
+        {
+            using (FolderBrowserDialog folderBrowse = new FolderBrowserDialog())
+            {
+                DialogResult dialogResult = folderBrowse.ShowDialog();
+
+                if (dialogResult == System.Windows.Forms.DialogResult.OK && !String.IsNullOrEmpty(folderBrowse.SelectedPath))
+                {
+                    textBoxADKOfflineLocation.Text = folderBrowse.SelectedPath;
+                }
+            }
+        }
+
+        private void ADKOfflineLocation_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (Directory.Exists(textBoxADKOfflineLocation.Text))
+            {
+                buttonADKOfflineInstall.IsEnabled = true;
+            }
+            else
+            {
+                buttonADKOfflineInstall.IsEnabled = false;
+            }
+        }
+
+        async private void ADKOfflineInstall_Click(object sender, RoutedEventArgs e)
+        {
+            //' Handle progress bar UI element
+            progressBarADKOnline.IsIndeterminate = true;
+
+            string filePath = Path.Combine(textBoxADKOfflineLocation.Text, "adksetup.exe");
+
+            //' Invoke ADK setup bootstrap file if download successful
+            if (File.Exists(filePath))
+            {
+                ProcessStartInfo processStartInfo = new ProcessStartInfo();
+                processStartInfo.FileName = filePath;
+                processStartInfo.Arguments = @"/norestart /q /ceip off /features OptionId.WindowsPreinstallationEnvironment OptionId.DeploymentTools OptionId.UserStateMigrationTool";
+                processStartInfo.UseShellExecute = false;
+                processStartInfo.CreateNoWindow = true;
+                processStartInfo.RedirectStandardError = true;
+
+                try
+                {
+                    await RunProcessAsync(processStartInfo);
+                    ShowMessageBox("SUCCESS", "Successfully installed Windows ADK.");
+                }
+                catch (Exception ex)
+                {
+                    ShowMessageBox("ERROR", String.Format("An error occured while installing Windows ADK. Error message: {0}", ex.Message));
+                }
+            }
+            else
+            {
+                ShowMessageBox("FILE NOT FOUND", "Unable to locate ADK setup bootstrap file.");
+            }
+
+            //' Handle progress bar UI element
+            progressBarADKOnline.IsIndeterminate = false;
+        }
+
+        async private void SQLServerGeneralMemoryConfigure_Click(object sender, RoutedEventArgs e)
+        {
+            bool result = await sqlEngine.SetSQLServerMemory(sqlConnection, textBoxSQLGeneralMaxMemory.Text, textBoxSQLGeneralMinMemory.Text);
         }
     }
 }

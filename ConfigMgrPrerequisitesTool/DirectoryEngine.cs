@@ -5,15 +5,44 @@ using System.Text;
 using System.Threading.Tasks;
 using System.DirectoryServices.ActiveDirectory;
 using System.DirectoryServices;
+using System.Security.Principal;
+using System.ComponentModel;
 
 namespace ConfigMgrPrerequisitesTool
 {
-    class DirectoryEngine
+    class DirectoryEngine : INotifyPropertyChanged
     {
         public string DisplayName { get; set; }
         public string SamAccountName { get; set; }
         public string DistinguishedName { get; set; }
-        public bool ObjectSelected { get; set; }
+        private bool _ObjectSelected;
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        /// <summary>
+        ///  This method triggers the PropertyChanged event and is used when properties
+        ///  in a data grid has been programmatically changed.
+        /// </summary>
+        public void OnPropertyChanged(String propertyName)
+        {
+            if (PropertyChanged != null)
+            {
+                PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
+            }
+        }
+
+        public bool ObjectSelected
+        {
+            get { return _ObjectSelected; }
+            set
+            {
+                if (_ObjectSelected != value)
+                {
+                    _ObjectSelected = value;
+                    OnPropertyChanged("ObjectSelected");
+                }
+            }
+        }
 
         public string GetSchemaMasterRoleOwner()
         {
@@ -73,6 +102,50 @@ namespace ConfigMgrPrerequisitesTool
             }
 
             return directoryEntries;
+        }
+
+        public bool AddOrganizationalUnitACL(string groupSID)
+        {
+            //' Construct active directory searcher for system management container and define loaded properties
+            string searchFilter = @"(&(ObjectCategory=container)(name=System Management))";
+            DirectorySearcher searcher = new DirectorySearcher(searchFilter);
+            searcher.PropertiesToLoad.Add("cn");
+            searcher.PropertiesToLoad.Add("distinguishedName");
+            searcher.PropertiesToLoad.Add("objectSid");
+
+            //' Invoke active directory searcher
+            SearchResult results = searcher.FindOne();
+
+            if (results != null)
+            {
+                //' Retrieve directory entry for system management container
+                DirectoryEntry container = results.GetDirectoryEntry();
+
+                // get list of current ACL's to check if groupSID exists
+
+                //' Construct new access rule and add it to the system management container
+                ActiveDirectoryAccessRule accessRule = new ActiveDirectoryAccessRule(new SecurityIdentifier(groupSID), ActiveDirectoryRights.GenericAll, System.Security.AccessControl.AccessControlType.Allow, ActiveDirectorySecurityInheritance.All, Guid.Empty);
+                container.ObjectSecurity.AddAccessRule(accessRule);
+
+                //' Write only the DACL information back and don't change the ownership
+                container.Options.SecurityMasks = SecurityMasks.Dacl;
+
+                //' Commit changes with new access rule
+                container.CommitChanges();
+            }
+
+            return false;
+        }
+
+        public string GetADObjectSID(string distinguishedName)
+        {
+            string returnValue = string.Empty;
+
+            DirectoryEntry group = new DirectoryEntry(String.Format("LDAP://{0}", distinguishedName));
+            SecurityIdentifier groupSid = new SecurityIdentifier(group.Properties["objectSid"][0] as byte[], 0);
+            returnValue = groupSid.Value;
+
+            return returnValue;
         }
 
         public string GetPDCRoleOwner()

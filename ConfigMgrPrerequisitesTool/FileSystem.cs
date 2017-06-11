@@ -85,15 +85,17 @@ namespace ConfigMgrPrerequisitesTool
             return volumeInfo;
         }
 
-        public void NewNoSmsOnDriveFile(string path)
+        async public Task WriteFileAsync(string path, string text)
         {
             string fileName = @"NO_SMS_ON_DRIVE.SMS";
             string filePath = Path.Combine(path, fileName);
 
-            if (!File.Exists(filePath))
+            byte[] encodedText = Encoding.Unicode.GetBytes(text);
+
+            using (FileStream sourceStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize: 4096, useAsync: true))
             {
-                FileStream fileStream = new FileStream(filePath, FileMode.Create);
-            }
+                await sourceStream.WriteAsync(encodedText, 0, encodedText.Length);
+            };
         }
 
         async public Task CopyFileAsync(string sourceFile, string destinationFile, CancellationToken cancellationToken)
@@ -104,7 +106,7 @@ namespace ConfigMgrPrerequisitesTool
             using (var sourceStream = new FileStream(sourceFile, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize, fileOptions))
             using (var destinationStream = new FileStream(destinationFile, FileMode.CreateNew, FileAccess.Write, FileShare.None, bufferSize, fileOptions))
 
-                await sourceStream.CopyToAsync(destinationStream, bufferSize, cancellationToken).ConfigureAwait(continueOnCapturedContext: false);
+            await sourceStream.CopyToAsync(destinationStream, bufferSize, cancellationToken).ConfigureAwait(continueOnCapturedContext: false);
         }
     }
 }
