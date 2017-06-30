@@ -31,7 +31,6 @@ namespace ConfigMgrPrerequisitesTool
             if (!String.IsNullOrEmpty(instance))
             {
                 connectionString.DataSource = server;
-                //connectionString.InitialCatalog = mdtDatabase;
                 connectionString.IntegratedSecurity = true;
             }
             else
@@ -42,15 +41,120 @@ namespace ConfigMgrPrerequisitesTool
             }
 
             //' Set general properties for connection string
-            connectionString.ConnectTimeout = 15;
+            connectionString.ConnectTimeout = 60;
 
             return connectionString;
+        }
+
+        async public Task<int> SetReportServerDBConfig(SqlConnection connection, string rsSize, string rstdSize)
+        {
+            int returnValue;
+
+            //' Parse parameters
+            float rsSizeFloat = float.Parse(rsSize);
+            float rstdSizeFloat = float.Parse(rstdSize);
+
+            //' Get executing assembly and read SQL script
+            Assembly assembly = Assembly.GetExecutingAssembly();
+            using (Stream stream = assembly.GetManifestResourceStream("ConfigMgrPrerequisitesTool.Scripts.SetSSRSConfiguration.sql"))
+            using (StreamReader reader = new StreamReader(stream))
+            {
+                string command = reader.ReadToEnd();
+
+                //' Create new SQL command
+                SqlCommand sqlCommand = connection.CreateCommand();
+                sqlCommand.CommandText = command;
+                sqlCommand.CommandTimeout = 360;
+
+                //' Construct output param
+                sqlCommand.Parameters.Add("@ReturnValue", SqlDbType.Int, 4).Direction = ParameterDirection.Output;
+
+                //' Add parameters
+                sqlCommand.Parameters.Add("@ReportServerMaxSizeGB", SqlDbType.Float).Value = rsSizeFloat;
+                sqlCommand.Parameters.Add("@ReportServerTempDBMaxSizeGB", SqlDbType.Float).Value = rstdSizeFloat;
+
+                //' Execute command asynchronous
+                int dataReader = await sqlCommand.ExecuteNonQueryAsync(); //' CommandBehavior.CloseConnection
+
+                returnValue = (int)sqlCommand.Parameters["@ReturnValue"].Value;
+
+                //' Cleanup SQL command
+                sqlCommand.Dispose();
+            }
+
+            return returnValue;
+        }
+
+        async public Task<string> GetSQLInstanceCollation(SqlConnection connection)
+        {
+            string returnValue = string.Empty;
+
+            //' Get executing assembly and read SQL script
+            Assembly assembly = Assembly.GetExecutingAssembly();
+            using (Stream stream = assembly.GetManifestResourceStream("ConfigMgrPrerequisitesTool.Scripts.GetSQLInstanceCollation.sql"))
+            using (StreamReader reader = new StreamReader(stream))
+            {
+                string command = reader.ReadToEnd();
+
+                //' Create new SQL command
+                SqlCommand sqlCommand = connection.CreateCommand();
+                sqlCommand.CommandText = command;
+                sqlCommand.CommandTimeout = 360;
+
+                //' Execute command asynchronous
+                object execResult = await sqlCommand.ExecuteScalarAsync(); //' CommandBehavior.CloseConnection
+
+                returnValue = execResult.ToString();
+
+                //' Cleanup SQL command
+                sqlCommand.Dispose();
+            }
+
+            return returnValue;
+        }
+
+        async public Task<int> NewCMDatabase(SqlConnection connection, string siteCode, string cores, string dbSize, string logSize)
+        {
+            int returnValue;
+
+            //' Get executing assembly and read SQL script
+            Assembly assembly = Assembly.GetExecutingAssembly();
+            using (Stream stream = assembly.GetManifestResourceStream("ConfigMgrPrerequisitesTool.Scripts.CreateCMDatabase.sql"))
+            using (StreamReader reader = new StreamReader(stream))
+            {
+                string command = reader.ReadToEnd();
+
+                //' Create new SQL command
+                SqlCommand sqlCommand = connection.CreateCommand();
+                sqlCommand.CommandText = command;
+                sqlCommand.CommandTimeout = 360;
+
+                //' Construct output param
+                sqlCommand.Parameters.Add("@ReturnValue", SqlDbType.Int, 4).Direction = ParameterDirection.Output;
+
+                //' Add parameters
+                sqlCommand.Parameters.Add("@CMSiteCode", SqlDbType.NChar).Value = siteCode;
+                sqlCommand.Parameters.Add("@NumTotalDataFiles", SqlDbType.TinyInt).Value = cores;
+                sqlCommand.Parameters.Add("@InitialDataFileSize", SqlDbType.NVarChar, 50).Value = String.Format("{0}MB", dbSize);
+                sqlCommand.Parameters.Add("@InitialLogFileSize", SqlDbType.NVarChar, 50).Value = String.Format("{0}MB", logSize);
+
+                //' Execute command asynchronous
+                int dataReader = await sqlCommand.ExecuteNonQueryAsync(); //' CommandBehavior.CloseConnection
+
+                returnValue = (int)sqlCommand.Parameters["@ReturnValue"].Value;
+               
+                //' Cleanup SQL command
+                sqlCommand.Dispose();
+            }
+
+            return returnValue;
         }
 
         async public Task<bool> SetSQLServerMemory(SqlConnection connection, string maxMemory, string minMemory)
         {
             bool returnValue = false;
 
+            //' Get executing assembly and read SQL script
             Assembly assembly = Assembly.GetExecutingAssembly();
             using (Stream stream = assembly.GetManifestResourceStream("ConfigMgrPrerequisitesTool.Scripts.SetSQLServerMemory.sql"))
             using (StreamReader reader = new StreamReader(stream))
@@ -60,21 +164,31 @@ namespace ConfigMgrPrerequisitesTool
                 //' Create new SQL command
                 SqlCommand sqlCommand = connection.CreateCommand();
                 sqlCommand.CommandText = command;
+                sqlCommand.CommandTimeout = 120;
 
                 //' Add parameters
                 sqlCommand.Parameters.Add("@MaxMem", SqlDbType.VarChar).Value = maxMemory;
                 sqlCommand.Parameters.Add("@MinMem", SqlDbType.VarChar).Value = minMemory;
 
-                //' Execute command asynchronous
-                object executionResult = await sqlCommand.ExecuteScalarAsync();
-
-                if (executionResult != null)
+                try
                 {
-                    returnValue = true;
-                }
+                    //' Execute command asynchronous
+                    object executionResult = await sqlCommand.ExecuteScalarAsync();
 
-                //' Cleanup SQL command
-                sqlCommand.Dispose();
+                    if (executionResult != null)
+                    {
+                        returnValue = true;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    returnValue = false;
+                }
+                finally
+                {
+                    //' Cleanup SQL command
+                    sqlCommand.Dispose();
+                }
             }
 
             return returnValue;

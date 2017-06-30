@@ -88,7 +88,7 @@ namespace ConfigMgrPrerequisitesTool
             //' Invoke active directory searcher
             SearchResultCollection results = searcher.FindAll();
 
-            if (results != null)
+            if (results != null && results.Count >= 1)
             {
                 foreach (SearchResult result in results)
                 {

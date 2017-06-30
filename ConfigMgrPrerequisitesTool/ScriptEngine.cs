@@ -45,6 +45,36 @@ namespace ConfigMgrPrerequisitesTool
         }
 
         /// <summary>
+        ///  This method invokes Install-WindowsFeature PowerShell cmdlet to install a specific feature by using source files from a specified location.
+        /// </summary>
+        async public Task<object> AddWindowsFeature(string featureName, string source)
+        {
+            object installStatus = string.Empty;
+
+            //' Create PowerShell instance
+            using (PowerShell psInstance = PowerShell.Create())
+            {
+                //' Add command and parameter to PowerShell instance
+                psInstance.AddCommand("Install-WindowsFeature");
+                psInstance.AddParameter("Name", featureName);
+                psInstance.AddParameter("Source", String.Format("{0}", source));
+
+                // Construct collection to hold pipeline stream objects
+                PSDataCollection<PSObject> streamCollection = new PSDataCollection<PSObject>();
+
+                // Invoke execution on the pipeline
+                PSDataCollection<PSObject> tResult = await Task.Factory.FromAsync(psInstance.BeginInvoke<PSObject, PSObject>(null, streamCollection), pResult => psInstance.EndInvoke(pResult));
+
+                foreach (PSObject psObject in streamCollection)
+                {
+                    installStatus = psObject.Members["ExitCode"].Value;
+                }
+            }
+
+            return installStatus;
+        }
+
+        /// <summary>
         ///  This method invokes Install-WindowsFeature PowerShell cmdlet on a remote runspace to install a specific feature.
         /// </summary>
         async public Task<object> AddWindowsFeatureRemote(string featureName, Runspace runspace)

@@ -19,6 +19,12 @@ using System.Collections;
 using System.Data;
 using System.Net;
 using System.Data.SqlClient;
+using System.Text.RegularExpressions;
+using System.Windows.Data;
+using System.Text;
+using System.Windows.Markup;
+using System.Globalization;
+using System.Collections.Specialized;
 
 namespace ConfigMgrPrerequisitesTool
 {
@@ -37,6 +43,7 @@ namespace ConfigMgrPrerequisitesTool
         private ObservableCollection<WindowsFeature> rolesCollection = new ObservableCollection<WindowsFeature>();
         private ObservableCollection<DirectoryEngine> directoryContainerCollection = new ObservableCollection<DirectoryEngine>();
         private ObservableCollection<WebEngine> collectionADKOnline = new ObservableCollection<WebEngine>();
+        private ObservableCollection<WindowsFeature> collectionWSUS = new ObservableCollection<WindowsFeature>();
 
         //' Initialize global Settings section objects
         private PSCredential psCredentials = null;
@@ -54,12 +61,23 @@ namespace ConfigMgrPrerequisitesTool
             dataGridSitePrefFile.ItemsSource = sitePreferenceFileCollection;
             dataGridRoles.ItemsSource = rolesCollection;
             dataGridADPermissions.ItemsSource = directoryContainerCollection;
+            dataGridWSUSFeatures.ItemsSource = collectionWSUS;
 
             //' Set item source for combo boxes
             comboBoxADKOnlineVersion.ItemsSource = collectionADKOnline;
 
             //' Load data into controls
             LoadGridSitePreferenceFile();
+
+            directoryContainerCollection.CollectionChanged += OnCollectionChanged;
+        }
+
+        public void OnCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+        {
+            if (e.Action == NotifyCollectionChangedAction.Reset)
+            {
+                buttonADPermissionsConfigure.IsEnabled = false;
+            }
         }
 
         /// <summary>
@@ -110,6 +128,14 @@ namespace ConfigMgrPrerequisitesTool
                 case "Certificate Registration Point":
                     string[] certificatePoint = new string[] { "NET-Framework-45-Features", "NET-Framework-45-Core", "NET-Framework-45-ASPNET", "NET-WCF-Services45", "NET-WCF-HTTP-Activation45", "NET-WCF-TCP-PortSharing45", "Web-Server", "Web-WebServer", "Web-Common-Http", "Web-Default-Doc", "Web-Dir-Browsing", "Web-Http-Errors", "Web-Static-Content", "Web-Health", "Web-Http-Logging", "Web-Performance", "Web-Stat-Compression", "Web-Security", "Web-Filtering", "Web-Mgmt-Tools", "Web-Mgmt-Console", "Web-Mgmt-Compat", "Web-Metabase", "Web-WMI", "Web-App-Dev", "Web-Net-Ext45", "Web-Asp-Net45", "Web-ISAPI-Ext", "Web-ISAPI-Filter", "WAS", "WAS-Process-Model", "WAS-Config-APIs" };
                     featureList.AddRange(certificatePoint);
+                    break;
+                case "WSUSWID":
+                    string[] wsusWid = new string[] { "UpdateServices", "UpdateServices-WidDB", "UpdateServices-Services", "UpdateServices-RSAT", "UpdateServices-API", "UpdateServices-UI" };
+                    featureList.AddRange(wsusWid);
+                    break;
+                case "WSUSSQL":
+                    string[] wsusSql = new string[] { "UpdateServices-Services", "UpdateServices-RSAT", "UpdateServices-API", "UpdateServices-UI", "UpdateServices-DB" };
+                    featureList.AddRange(wsusSql);
                     break;
             }
 
@@ -290,14 +316,27 @@ namespace ConfigMgrPrerequisitesTool
             }
         }
 
+        private ProcessStartInfo NewProcessStartInfo(string filePath, string arguments)
+        {
+            ProcessStartInfo processStartInfo = new ProcessStartInfo();
+            processStartInfo.FileName = filePath;
+            processStartInfo.Arguments = arguments;
+            processStartInfo.UseShellExecute = false;
+            processStartInfo.CreateNoWindow = true;
+            processStartInfo.RedirectStandardError = true;
+
+            return processStartInfo;
+        }
+
+        private bool IsTextNumeric(string input)
+        {
+            Regex regex = new Regex("^[0-9]+$");
+
+            return regex.IsMatch(input);
+        }
+
         private void SettingsCredsAdd_Click(object sender, RoutedEventArgs e)
         {
-            //' Clear existing credentials
-            if (psCredentials != null)
-            {
-                psCredentials = null;
-            }
-
             if (!String.IsNullOrEmpty(textBoxSettingsCredsUserName.Text))
             {
                 if (!String.IsNullOrEmpty(passwordBoxSettingsCredsPassword.Password))
@@ -305,9 +344,11 @@ namespace ConfigMgrPrerequisitesTool
                     //' Construct new PSCredential
                     psCredentials = new PSCredential(textBoxSettingsCredsUserName.Text, passwordBoxSettingsCredsPassword.SecurePassword);
 
-                    //' Clear controls
-                    passwordBoxSettingsCredsPassword.Password = null;
-                    textBoxSettingsCredsUserName.Text = null;
+                    //' Handle UI elements
+                    textBoxSettingsCredsUserName.IsEnabled = false;
+                    passwordBoxSettingsCredsPassword.IsEnabled = false;
+                    buttonSettingsCredsAdd.IsEnabled = false;
+                    buttonSettingsCredsClear.IsEnabled = true;
 
                     ShowMessageBox("CREDENTIALS", "New credentials stored successfully.");
                 }
@@ -322,12 +363,53 @@ namespace ConfigMgrPrerequisitesTool
             }
         }
 
+        private void SettingsCredsClear_Click(object sender, RoutedEventArgs e)
+        {
+            //' Clear existing credentials
+            if (psCredentials != null)
+            {
+                psCredentials = null;
+            }
+
+            //' Clear controls
+            passwordBoxSettingsCredsPassword.Password = null;
+            textBoxSettingsCredsUserName.Text = null;
+
+            //' Handle UI elements
+            textBoxSettingsCredsUserName.IsEnabled = true;
+            passwordBoxSettingsCredsPassword.IsEnabled = true;
+            buttonSettingsCredsAdd.IsEnabled = true;
+            buttonSettingsCredsClear.IsEnabled = false;
+        }
+
+        private void SettingsSourcesBrowse_Click(object sender, RoutedEventArgs e)
+        {
+            using (FolderBrowserDialog folderBrowse = new FolderBrowserDialog())
+            {
+                DialogResult dialogResult = folderBrowse.ShowDialog();
+
+                if (dialogResult == System.Windows.Forms.DialogResult.OK && !String.IsNullOrEmpty(folderBrowse.SelectedPath))
+                {
+                    if (fileSystem.IsFolderEmpty(folderBrowse.SelectedPath) == true)
+                    {
+                        textBoxSettingsSource.Text = folderBrowse.SelectedPath;
+                    }
+                    else
+                    {
+                        ShowMessageBox("WARNING", @"Selected folder is not empty, please select another or create a new.");
+                    }
+                }
+            }
+        }
+
         async private void SettingsSQLServerConnect_Click(object sender, RoutedEventArgs e)
         {
-            progressBarSettingsSQLServer.IsIndeterminate = true;
+            //' Handle UI elements
+            progressBarSettingsConnectionsSQLServer.IsIndeterminate = true;
+            buttonSettingsConnectionsSQLServerConnect.IsEnabled = false;
 
             //' Construct new SqlConnect object
-            sqlConnection = sqlEngine.NewSQLServerConnection(textBoxSettingsSQLServerName.Text, textBoxSettingsSQLServerInstance.Text);
+            sqlConnection = sqlEngine.NewSQLServerConnection(textBoxSettingsConnectionsSQLServerName.Text, textBoxSettingsConnectionsSQLServerInstance.Text);
 
             //' Attempt to connect to SQL server
             try
@@ -339,10 +421,14 @@ namespace ConfigMgrPrerequisitesTool
                     ShowMessageBox("SUCCESS", "Successfully established a connection to the specified SQL Server.");
 
                     //' Handle UI elements
-                    textBoxSettingsSQLServerName.IsEnabled = false;
-                    textBoxSettingsSQLServerInstance.IsEnabled = false;
-                    buttonSettingsSQLServerConnect.IsEnabled = false;
-                    buttonSettingsSQLServerClose.IsEnabled = true;
+                    textBoxSettingsConnectionsSQLServerName.IsEnabled = false;
+                    textBoxSettingsConnectionsSQLServerInstance.IsEnabled = false;
+                    buttonSettingsConnectionsSQLServerConnect.IsEnabled = false;
+                    buttonSettingsConnectionsSQLServerClose.IsEnabled = true;
+                }
+                else
+                {
+                    buttonSettingsConnectionsSQLServerConnect.IsEnabled = true;
                 }
             }
             catch (Exception ex)
@@ -350,7 +436,8 @@ namespace ConfigMgrPrerequisitesTool
                 ShowMessageBox("ERROR", String.Format("{0}", ex.Message));
             }
 
-            progressBarSettingsSQLServer.IsIndeterminate = false;
+            //' Handle UI elements
+            progressBarSettingsConnectionsSQLServer.IsIndeterminate = false;
         }
 
         private void SettingsSQLServerClose_Click(object sender, RoutedEventArgs e)
@@ -360,10 +447,10 @@ namespace ConfigMgrPrerequisitesTool
                 sqlConnection.Close();
 
                 //' Handle UI elements
-                textBoxSettingsSQLServerName.IsEnabled = true;
-                textBoxSettingsSQLServerInstance.IsEnabled = true;
-                buttonSettingsSQLServerConnect.IsEnabled = true;
-                buttonSettingsSQLServerClose.IsEnabled = false;
+                textBoxSettingsConnectionsSQLServerName.IsEnabled = true;
+                textBoxSettingsConnectionsSQLServerInstance.IsEnabled = true;
+                buttonSettingsConnectionsSQLServerConnect.IsEnabled = true;
+                buttonSettingsConnectionsSQLServerClose.IsEnabled = false;
             }
         }
 
@@ -396,17 +483,56 @@ namespace ConfigMgrPrerequisitesTool
 
                 //' Invoke windows feature installation via PowerShell runspace
                 object installResult = await scriptEngine.AddWindowsFeature(feature);
+                string featureState = installResult.ToString();
 
                 //' Update current row on data grid
-                if (!String.IsNullOrEmpty(installResult.ToString()))
+                if (!String.IsNullOrEmpty(featureState))
                 {
                     var currentCollectionItem = siteTypeCollection.FirstOrDefault(winFeature => winFeature.Name == feature);
+
+                    if (featureState == "Failed")
+                    {
+                        if (checkBoxSiteTypeRetryFailed.IsChecked == true)
+                        {
+                            //' Invoke windows feature installation via PowerShell runspace with alternate source
+                            currentCollectionItem.Result = "RetryWithSource";
+                            object retryResult = await scriptEngine.AddWindowsFeature(feature, textBoxSettingsSource.Text);
+                            featureState = retryResult.ToString();
+
+                            if (featureState == "Failed")
+                            {
+                                featureState = "FailedAfterRetry";
+                            }
+                        }
+                    }
+
+                    //' Update datagrid elements
                     currentCollectionItem.Progress = false;
-                    currentCollectionItem.Result = installResult.ToString();
+                    currentCollectionItem.Result = featureState;
                 }
 
                 //' Set color of progressbar
                 // new prop needed for binding
+            }
+
+            //' Determine failed windows feature installations
+            IEnumerable<WindowsFeature> failedFeatures = (dataGridSiteType.ItemsSource as IEnumerable<WindowsFeature>).Where(feature => feature.Result == "Failed");
+
+            if (failedFeatures != null && failedFeatures.Count() >= 1)
+            {
+                checkBoxSiteTypeRetryFailed.IsEnabled = true;
+            }
+        }
+
+        private void SiteTypeRetry_Checked(object sender, RoutedEventArgs e)
+        {
+            if (textBoxSettingsSource.Text.Length <= 5)
+            {
+                ShowMessageBox("WARNING", "Invalid alternate source location detected, please go to Settings and set the correct source location.");
+
+                //' Clear checkbox selection
+                System.Windows.Controls.CheckBox checkBox = sender as System.Windows.Controls.CheckBox;
+                checkBox.IsChecked = false;
             }
         }
 
@@ -545,13 +671,7 @@ namespace ConfigMgrPrerequisitesTool
             }
         }
 
-        private void SiteType_LoadingRow(object sender, DataGridRowEventArgs e)
-        {
-            DataGridRow row = e.Row;
-            row.Background = (SolidColorBrush)new BrushConverter().ConvertFrom("#333337");
-        }
-
-        private void SitePreferenceFile_LoadingRow(object sender, DataGridRowEventArgs e)
+        private void DataGrid_LoadingRow(object sender, DataGridRowEventArgs e)
         {
             DataGridRow row = e.Row;
             row.Background = (SolidColorBrush)new BrushConverter().ConvertFrom("#333337");
@@ -606,9 +726,11 @@ namespace ConfigMgrPrerequisitesTool
         {
             progressBarSitePrereq.IsIndeterminate = true;
 
+            string arguments = "\"" + textBoxSitePrereqDownload.Text + "\"";
+
             ProcessStartInfo processStartInfo = new ProcessStartInfo();
             processStartInfo.FileName = textBoxSitePrereqBrowse.Text;
-            processStartInfo.Arguments = textBoxSitePrereqDownload.Text;
+            processStartInfo.Arguments = arguments;
             processStartInfo.UseShellExecute = false;
             processStartInfo.CreateNoWindow = true;
             processStartInfo.RedirectStandardError = true;
@@ -616,6 +738,7 @@ namespace ConfigMgrPrerequisitesTool
             try
             {
                 await RunProcessAsync(processStartInfo);
+                ShowMessageBox("DOWNLOAD COMPLETE", "Successfully downloaded the Configuration Manager setup prerequisite files.");
             }
             catch (Exception ex)
             {
@@ -984,6 +1107,11 @@ namespace ConfigMgrPrerequisitesTool
                     try
                     {
                         bool result = await scriptEngine.NewADContainer(runspace);
+
+                        if (result == true)
+                        {
+                            ShowMessageBox("SYSTEM MANAGEMENT CONTAINER", "Successfully created the System Management container.");
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -993,6 +1121,10 @@ namespace ConfigMgrPrerequisitesTool
                     //' Cleanup runspace
                     runspace.Close();
                 }
+            }
+            else
+            {
+                ShowMessageBox("SYSTEM MANAGEMENT CONTAINER", "System management container already exist.");
             }
         }
 
@@ -1006,13 +1138,20 @@ namespace ConfigMgrPrerequisitesTool
                 directoryContainerCollection.Clear();
             }
 
-            //' Construct new background worker
-            BackgroundWorker worker = new BackgroundWorker();
-            worker.DoWork += WorkerDoWork_PermissionSearch;
-            worker.RunWorkerCompleted += WorkerCompleted_PermissionSearch;
+            if (!String.IsNullOrEmpty(textBoxADPermissionsGroupSearch.Text))
+            {
+                //' Construct new background worker
+                BackgroundWorker worker = new BackgroundWorker();
+                worker.DoWork += WorkerDoWork_PermissionSearch;
+                worker.RunWorkerCompleted += WorkerCompleted_PermissionSearch;
 
-            //' Invoke background worker
-            worker.RunWorkerAsync(textBoxADPermissionsGroupSearch.Text);
+                //' Invoke background worker
+                worker.RunWorkerAsync(textBoxADPermissionsGroupSearch.Text);
+            }
+            else
+            {
+                progressBarADPermissions.IsIndeterminate = false;
+            }
         }
 
         private void WorkerDoWork_PermissionSearch(object sender, DoWorkEventArgs e)
@@ -1035,6 +1174,11 @@ namespace ConfigMgrPrerequisitesTool
             foreach (DirectoryEngine item in result)
             {
                 directoryContainerCollection.Add(new DirectoryEngine { DisplayName = item.DisplayName, ObjectSelected = item.ObjectSelected, SamAccountName = item.SamAccountName, DistinguishedName = item.DistinguishedName });
+            }
+
+            if (directoryContainerCollection.Count >= 1)
+            {
+                buttonADPermissionsConfigure.IsEnabled = true;
             }
 
             progressBarADPermissions.IsIndeterminate = false;
@@ -1064,18 +1208,31 @@ namespace ConfigMgrPrerequisitesTool
         {
             try
             {
-                //' Get all selected groups
-                foreach (DirectoryEngine row in dataGridADPermissions.ItemsSource)
+                if (directoryContainerCollection.Count >= 1)
                 {
-                    if (row.ObjectSelected == true)
-                    {
-                        string groupSid = activeDirectory.GetADObjectSID(row.DistinguishedName);
-                        bool result = activeDirectory.AddOrganizationalUnitACL(groupSid);
+                    //' Get all selected rows
+                    IEnumerable<DirectoryEngine> selectedRows = (dataGridADPermissions.ItemsSource as IEnumerable<DirectoryEngine>).Where(row => row.ObjectSelected == true);
 
-                        if (result == true)
+                    if (selectedRows.ToList().Count >= 1)
+                    {
+                        //' Process all selected groups
+                        foreach (DirectoryEngine row in dataGridADPermissions.ItemsSource)
                         {
-                            ShowMessageBox("SUCCESS", String.Format("Successfully added permissions for System Management container with Active Directory group {0}", row.DisplayName));
+                            if (row.ObjectSelected == true)
+                            {
+                                string groupSid = activeDirectory.GetADObjectSID(row.DistinguishedName);
+                                bool result = activeDirectory.AddOrganizationalUnitACL(groupSid);
+
+                                if (result == true)
+                                {
+                                    ShowMessageBox("SUCCESS", String.Format("Successfully added permissions for System Management container with Active Directory group {0}", row.DisplayName));
+                                }
+                            }
                         }
+                    }
+                    else
+                    {
+                        ShowMessageBox("EMPTY ITEM SELECTION", "Please select at least one item that should be added to the System Management container.");
                     }
                 }
             }
@@ -1206,7 +1363,7 @@ namespace ConfigMgrPrerequisitesTool
                 try
                 {
                     await RunProcessAsync(processStartInfo);
-                    ShowMessageBox("SUCCESS", "Successfully installed Windows ADK.");
+                    ShowMessageBox("SUCCESS", "Successfully installed Windows ADK. Please restart the system to complete the installation.");
                 }
                 catch (Exception ex)
                 {
@@ -1267,7 +1424,7 @@ namespace ConfigMgrPrerequisitesTool
                 try
                 {
                     await RunProcessAsync(processStartInfo);
-                    ShowMessageBox("SUCCESS", "Successfully installed Windows ADK.");
+                    ShowMessageBox("SUCCESS", "Successfully installed Windows ADK. Please restart the system to complete the installation.");
                 }
                 catch (Exception ex)
                 {
@@ -1285,7 +1442,358 @@ namespace ConfigMgrPrerequisitesTool
 
         async private void SQLServerGeneralMemoryConfigure_Click(object sender, RoutedEventArgs e)
         {
-            bool result = await sqlEngine.SetSQLServerMemory(sqlConnection, textBoxSQLGeneralMaxMemory.Text, textBoxSQLGeneralMinMemory.Text);
+            //' Check if database initial size is of a numeric value
+            if (IsTextNumeric(textBoxSQLGeneralMaxMemory.Text) == true && textBoxSQLGeneralMaxMemory.Text.Length >= 1)
+            {
+                if (IsTextNumeric(textBoxSQLGeneralMinMemory.Text) == true && textBoxSQLGeneralMinMemory.Text.Length >= 1)
+                {
+                    if (sqlConnection != null)
+                    {
+                        if (sqlConnection.State == ConnectionState.Open)
+                        {
+                            bool result = await sqlEngine.SetSQLServerMemory(sqlConnection, textBoxSQLGeneralMaxMemory.Text, textBoxSQLGeneralMinMemory.Text);
+
+                            if (result == true)
+                            {
+                                ShowMessageBox("SUCCESS", "Successfully configured the SQL Server memory settings.");
+                            }
+                        }
+                        else
+                        {
+                            ShowMessageBox("CONNECTION ERROR", "Unable to detect an open SQL connection. Please go to Settings and connect to a SQL Server.");
+                        }
+                    }
+                    else
+                    {
+                        ShowMessageBox("CONNECTION ERROR", "Unable to detect an open SQL connection. Please go to Settings and connect to a SQL Server.");
+                    }
+                }
+                else
+                {
+                    ShowMessageBox("INVALID INPUT", "Please enter a numeric value for the minimum memory text field.");
+                }
+            }
+            else
+            {
+                ShowMessageBox("INVALID INPUT", "Please enter a numeric value for the maximum memory text field.");
+            }
+        }
+
+        async private void SQLServerCollationValidate_Click(object sender, RoutedEventArgs e)
+        {
+            if (sqlConnection != null)
+            {
+                if (sqlConnection.State == ConnectionState.Open)
+                {
+                    string collation = await sqlEngine.GetSQLInstanceCollation(sqlConnection);
+
+                    if (collation == "SQL_Latin1_General_CP1_CI_AS")
+                    {
+                        iconSQLCollationSuccess.Visibility = Visibility.Visible;
+                    }
+                    else
+                    {
+                        iconSQLCollationFailure.Visibility = Visibility.Visible;
+                    }
+                    textBoxSQLCollation.Text = collation;
+                }
+            }
+            else
+            {
+                ShowMessageBox("CONNECTION ERROR", "Unable to detect an open SQL connection. Please go to Settings and connect to a SQL Server.");
+            }
+        }
+
+        async private void SQLServerDatabaseCMCreate_Click(object sender, RoutedEventArgs e)
+        {
+            //' Check if database initial size is of a numeric value
+            if (IsTextNumeric(textBoxSQLDatabaseCMInitSize.Text) == true)
+            {
+                if (IsTextNumeric(textBoxSQLDatabaseCMInitLogSize.Text) == true)
+                {
+                    if (textBoxSQLDatabaseCMSiteCode.Text.Length == 3)
+                    {
+                        if (sqlConnection != null)
+                        {
+                            if (sqlConnection.State == ConnectionState.Open)
+                            {
+                                progressBarSQLDatabaseCM.IsIndeterminate = true;
+
+                                try
+                                {
+                                    int returnValue = await sqlEngine.NewCMDatabase(sqlConnection, textBoxSQLDatabaseCMSiteCode.Text, comboBoxSQLDatabaseCMSplit.SelectedItem.ToString(), textBoxSQLDatabaseCMInitSize.Text, textBoxSQLDatabaseCMInitLogSize.Text);
+
+                                    switch (returnValue)
+                                    {
+                                        case 0:
+                                            ShowMessageBox("SUCCESS", "Successfully created the Configuration Manager database.");
+                                            break;
+                                        case 1:
+                                            ShowMessageBox("ERROR", "An unhandled error occured while creating the Configuration Manager database.");
+                                            break;
+                                        case 2:
+                                            ShowMessageBox("WARNING", "A database already exists with the given name, specify another Site Code.");
+                                            break;
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    ShowMessageBox("ERROR", String.Format("An unhandled error occured while creating the Configuration Manager database. Error message: {0}", ex.Message));
+                                }
+
+                                progressBarSQLDatabaseCM.IsIndeterminate = false;
+                            }
+                        }
+                        else
+                        {
+                            ShowMessageBox("CONNECTION ERROR", "Unable to detect an open SQL connection. Please go to Settings and connect to a SQL Server.");
+                        }
+                    }
+                    else
+                    {
+                        ShowMessageBox("INVALID INPUT", "Please enter a valid Site Code by using 3 alphanumerics characters.");
+                    }
+                }
+                else
+                {
+                    ShowMessageBox("INVALID INPUT", "Please enter a numeric value for the initial size of the Configuration Manager database log files.");
+                }
+            }
+            else
+            {
+                ShowMessageBox("INVALID INPUT", "Please enter a numeric value for the initial size of the Configuration Manager database.");
+            }
+        }
+
+        private void WSUSPostInstallBrowse_Click(object sender, RoutedEventArgs e)
+        {
+            using (FolderBrowserDialog folderBrowse = new FolderBrowserDialog())
+            {
+                DialogResult dialogResult = folderBrowse.ShowDialog();
+
+                if (dialogResult == System.Windows.Forms.DialogResult.OK && !String.IsNullOrEmpty(folderBrowse.SelectedPath))
+                {
+                    textBoxWSUSPostInstallLocation.Text = folderBrowse.SelectedPath;
+                }
+            }
+        }
+
+        async private void WSUSFeaturesInstall_Click(object sender, RoutedEventArgs e)
+        {
+            //' Clear existing items from observable collection
+            if (dataGridWSUSFeatures.Items.Count >= 1)
+            {
+                collectionWSUS.Clear();
+            }
+
+            //' Get list features for selected database option
+            List<string> featureList = new List<string>();
+            switch (comboBoxWSUSFeatures.SelectedItem.ToString())
+            {
+                case "SQL Server":
+                    featureList = GetWindowsFeatures("WSUSSQL");
+                    break;
+                case "Windows Internal Database":
+                    featureList = GetWindowsFeatures("WSUSWID");
+                    break;
+            }
+
+            //' Update progress bar properties
+            progressBarWSUSFeatures.Maximum = featureList.Count - 1;
+            int progressBarValue = 0;
+            labelWSUSFeaturesProgress.Content = string.Empty;
+
+            //' Process each windows feature for installation
+            foreach (string feature in featureList)
+            {
+                //' Update progress bar
+                progressBarSiteType.Value = progressBarValue++;
+                labelSiteTypeProgress.Content = String.Format("{0} / {1}", progressBarValue, featureList.Count);
+
+                //' Add new item for current windows feature installation state
+                collectionWSUS.Add(new WindowsFeature { Name = feature, Progress = true, Result = "Installing..." });
+                dataGridWSUSFeatures.ScrollIntoView(collectionWSUS[collectionWSUS.Count - 1]);
+
+                //' Invoke windows feature installation via PowerShell runspace
+                object installResult = await scriptEngine.AddWindowsFeature(feature);
+
+                //' Update current row on data grid
+                if (!String.IsNullOrEmpty(installResult.ToString()))
+                {
+                    var currentCollectionItem = collectionWSUS.FirstOrDefault(winFeature => winFeature.Name == feature);
+                    currentCollectionItem.Progress = false;
+                    currentCollectionItem.Result = installResult.ToString();
+                }
+
+                //' Set color of progressbar
+                // new prop needed for binding
+            }
+        }
+
+        private void WSUSPostInstallComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (textBoxWSUSPostInstallSQLServer != null && textBoxWSUSPostInstallSQLServerInstance != null)
+            {
+                switch (comboBoxWSUSPostInstall.SelectedItem.ToString())
+                {
+                    case "SQL Server":
+                        textBoxWSUSPostInstallSQLServer.IsEnabled = true;
+                        textBoxWSUSPostInstallSQLServerInstance.IsEnabled = true;
+                        break;
+                    case "Windows Internal Database":
+                        textBoxWSUSPostInstallSQLServer.IsEnabled = false;
+                        textBoxWSUSPostInstallSQLServerInstance.IsEnabled = false;
+                        break;
+                }
+            }
+        }
+
+        async private void WSUSPostInstallConfigure_Click(object sender, RoutedEventArgs e)
+        {
+            //' Handle progress bar UI element
+            progressBarWSUSPost.IsIndeterminate = true;
+
+            //' Construct the path to wsusutil.exe
+            string wsusUtil = Path.Combine(Environment.GetEnvironmentVariable("ProgramFiles") + @"\Update Services\Tools", "wsusutil.exe");
+
+            if (File.Exists(wsusUtil))
+            {
+                if (Directory.Exists(textBoxWSUSPostInstallLocation.Text))
+                {
+                    if (fileSystem.IsFolderEmpty(textBoxWSUSPostInstallLocation.Text))
+                    {
+                        //' Perform a post install for SQL Server selection
+                        if (comboBoxWSUSPostInstall.SelectedItem.ToString() == "SQL Server")
+                        {
+                            if (textBoxWSUSPostInstallSQLServer.Text.Length >= 2)
+                            {
+                                //' Set arguments based upon SQL Server instance presence or not
+                                string arguments = string.Empty;
+                                if (!String.IsNullOrEmpty(textBoxWSUSPostInstallSQLServerInstance.Text))
+                                {
+                                    arguments = String.Format(@"POSTINSTALL SQL_INSTANCE_NAME={0}\{1} CONTENT_DIR={2}", textBoxWSUSPostInstallSQLServer.Text, textBoxWSUSPostInstallSQLServerInstance.Text, textBoxWSUSPostInstallLocation.Text);
+                                }
+                                else
+                                {
+                                    arguments = String.Format(@"POSTINSTALL SQL_INSTANCE_NAME={0} CONTENT_DIR={1}", textBoxWSUSPostInstallSQLServer.Text, textBoxWSUSPostInstallLocation.Text);
+                                }
+
+                                //' Construct new processstartinfo object
+                                ProcessStartInfo processStartInfo = NewProcessStartInfo(wsusUtil, arguments);
+
+                                try
+                                {
+                                    await RunProcessAsync(processStartInfo);
+                                    ShowMessageBox("SUCCESS", "Successfully completed the WSUS post install configuration.");
+                                }
+                                catch (Exception ex)
+                                {
+                                    ShowMessageBox("ERROR", String.Format("An error occured while configuring WSUS post install. Error message: {0}", ex.Message));
+                                }
+                            }
+                            else
+                            {
+                                ShowMessageBox("SQL SERVER", "Please enter a SQL Server");
+                            }
+                        }
+
+                        //' Perform a post install for WID
+                        if (comboBoxWSUSPostInstall.SelectedItem.ToString() == "Windows Internal Database")
+                        {
+                            //' Construct new processstartinfo object
+                            string arguments = String.Format(@"POSTINSTALL CONTENT_DIR={0}", textBoxWSUSPostInstallLocation.Text);
+                            ProcessStartInfo processStartInfo = NewProcessStartInfo(wsusUtil, arguments);
+
+                            try
+                            {
+                                await RunProcessAsync(processStartInfo);
+                                ShowMessageBox("SUCCESS", "Successfully completed the WSUS post install configuration.");
+                            }
+                            catch (Exception ex)
+                            {
+                                ShowMessageBox("ERROR", String.Format("An error occured while configuring WSUS post install. Error message: {0}", ex.Message));
+                            }
+                        }
+                    }
+                    else
+                    {
+                        ShowMessageBox("FOLDER NOT EMPTY", "Specified directory for WSUS content location is not empty. Please enter an empty directory");
+                    }
+                }
+                else
+                {
+                    ShowMessageBox("DIRECTORY NOT FOUND", "Specified directory for WSUS content location does not exist. Please enter a valid directory.");
+                }
+            }
+            else
+            {
+                ShowMessageBox("FILE NOT FOUND", "Unable to detect required exectuable to perform WSUS post install. Make sure that WSUS have been installed prior to running the configuration.");
+            }
+
+            //' Handle progress bar UI element
+            progressBarWSUSPost.IsIndeterminate = false;
+        }
+
+        private void Testing(object sender, DataTransferEventArgs e)
+        {
+            System.Windows.Controls.DataGrid grid = (System.Windows.Controls.DataGrid)e.OriginalSource;
+            if (grid.HasItems == true)
+            {
+                buttonADPermissionsConfigure.IsEnabled = true;
+            }
+
+            e.Handled = true;
+        }
+
+        async private void SQLServerSSRSConfigure_Click(object sender, RoutedEventArgs e)
+        {
+            //' Check if database initial size is of a numeric value
+            if (IsTextNumeric(textBoxSQLSSRSReportServerMaxSize.Text) == true)
+            {
+                if (IsTextNumeric(textBoxSQLSSRSReportServerTempDBMaxSize.Text) == true)
+                {
+                    if (sqlConnection != null)
+                    {
+                        if (sqlConnection.State == ConnectionState.Open)
+                        {
+                            progressBarSQLSSRS.IsIndeterminate = true;
+
+                            try
+                            {
+                                int returnValue = await sqlEngine.SetReportServerDBConfig(sqlConnection, textBoxSQLSSRSReportServerMaxSize.Text, textBoxSQLSSRSReportServerTempDBMaxSize.Text);
+
+                                switch (returnValue)
+                                {
+                                    case 0:
+                                        ShowMessageBox("SUCCESS", "Successfully configured the SSRS databases.");
+                                        break;
+                                    case 1:
+                                        ShowMessageBox("ERROR", "An unhandled error occured while configuring the SSRS databases.");
+                                        break;
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                ShowMessageBox("ERROR", String.Format("An unhandled error occured while configuring the SSRS databases. Error message: {0}", ex.Message));
+                            }
+
+                            progressBarSQLSSRS.IsIndeterminate = false;
+                        }
+                    }
+                    else
+                    {
+                        ShowMessageBox("CONNECTION ERROR", "Unable to detect an open SQL connection. Please go to Settings and connect to a SQL Server.");
+                    }
+                }
+                else
+                {
+                    ShowMessageBox("INVALID INPUT", "Please enter a numeric value for the maximum file size of the ReportServerTempDB database.");
+                }
+            }
+            else
+            {
+                ShowMessageBox("INVALID INPUT", "Please enter a numeric value for the maximum file size of the ReportServer database.");
+            }
         }
     }
 }
