@@ -10,6 +10,7 @@ using System.Runtime.Serialization;
 using System.Management.Automation.Remoting;
 using System.Reflection;
 using System.IO;
+using System.Windows.Forms;
 
 namespace ConfigMgrPrerequisitesTool
 {
@@ -33,11 +34,18 @@ namespace ConfigMgrPrerequisitesTool
                 PSDataCollection<PSObject> streamCollection = new PSDataCollection<PSObject>();
 
                 // Invoke execution on the pipeline
-                PSDataCollection<PSObject> tResult = await Task.Factory.FromAsync(psInstance.BeginInvoke<PSObject, PSObject>(null, streamCollection), pResult => psInstance.EndInvoke(pResult));
-
-                foreach (PSObject psObject in streamCollection)
+                try
                 {
-                    installStatus = psObject.Members["ExitCode"].Value;
+                    PSDataCollection<PSObject> tResult = await Task.Factory.FromAsync(psInstance.BeginInvoke<PSObject, PSObject>(null, streamCollection), pResult => psInstance.EndInvoke(pResult));
+
+                    foreach (PSObject psObject in streamCollection)
+                    {
+                        installStatus = psObject.Members["ExitCode"].Value;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(String.Format("{0}", ex.Message));
                 }
             }
 

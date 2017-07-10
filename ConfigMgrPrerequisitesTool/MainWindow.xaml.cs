@@ -25,6 +25,7 @@ using System.Text;
 using System.Windows.Markup;
 using System.Globalization;
 using System.Collections.Specialized;
+using System.Net.NetworkInformation;
 
 namespace ConfigMgrPrerequisitesTool
 {
@@ -266,12 +267,35 @@ namespace ConfigMgrPrerequisitesTool
         {
             bool networkState = false;
 
-            if (System.Net.NetworkInformation.NetworkInterface.GetIsNetworkAvailable())
+            if (NetworkInterface.GetIsNetworkAvailable())
             {
-                networkState = true;
+                if (CanPingADKWebSite())
+                {
+                    networkState = true;
+                }
             }
 
             return networkState;
+        }
+
+        private bool CanPingADKWebSite()
+        {
+            const int timeout = 1000;
+            const string host = "developer.microsoft.com";
+
+            var ping = new Ping();
+            var buffer = new byte[32];
+            var pingOptions = new PingOptions();
+
+            try
+            {
+                var reply = ping.Send(host, timeout, buffer, pingOptions);
+                return (reply != null && reply.Status == IPStatus.Success);
+            }
+            catch (Exception)
+            {
+                return false;
+            }
         }
 
         async public void ShowMessageBox(string title, string message)
@@ -390,13 +414,13 @@ namespace ConfigMgrPrerequisitesTool
 
                 if (dialogResult == System.Windows.Forms.DialogResult.OK && !String.IsNullOrEmpty(folderBrowse.SelectedPath))
                 {
-                    if (fileSystem.IsFolderEmpty(folderBrowse.SelectedPath) == true)
+                    if (fileSystem.IsFolderEmpty(folderBrowse.SelectedPath) == false)
                     {
                         textBoxSettingsSource.Text = folderBrowse.SelectedPath;
                     }
                     else
                     {
-                        ShowMessageBox("WARNING", @"Selected folder is not empty, please select another or create a new.");
+                        ShowMessageBox("WARNING", @"Selected folder is empty, please select another source location.");
                     }
                 }
             }
@@ -434,6 +458,7 @@ namespace ConfigMgrPrerequisitesTool
             catch (Exception ex)
             {
                 ShowMessageBox("ERROR", String.Format("{0}", ex.Message));
+                buttonSettingsConnectionsSQLServerConnect.IsEnabled = true;
             }
 
             //' Handle UI elements
@@ -656,8 +681,10 @@ namespace ConfigMgrPrerequisitesTool
                         rolesCollection.Add(new WindowsFeature { Server = localComputer, Name = feature, Progress = true, Result = "Installing..." });
                         dataGridRoles.ScrollIntoView(rolesCollection[rolesCollection.Count - 1]);
 
+                        object installResult = null;
+
                         //' Invoke windows feature installation via PowerShell runspace
-                        object installResult = await scriptEngine.AddWindowsFeature(feature);
+                        installResult = await scriptEngine.AddWindowsFeature(feature);
 
                         //' Update current row on data grid
                         if (!String.IsNullOrEmpty(installResult.ToString()))
@@ -864,8 +891,24 @@ namespace ConfigMgrPrerequisitesTool
 
         private void DirectorySchemaDetect_Click(object sender, RoutedEventArgs e)
         {
+            string schemaMaster = string.Empty;
+
             //' Determine schema master
-            string schemaMaster = activeDirectory.GetSchemaMasterRoleOwner();
+            if (activeDirectory.IsDomainUser())
+            {
+                try
+                {
+                    schemaMaster = activeDirectory.GetSchemaMasterRoleOwner();
+                }
+                catch (Exception ex)
+                {
+                    ShowMessageBox("ERROR", String.Format("{0}", ex.Message));
+                }
+            }
+            else
+            {
+                ShowMessageBox("WARNING", "Current logged on user is not a domain account. Please login with a domain account to detect the Schema Master role owner.");
+            }
 
             if (!String.IsNullOrEmpty(schemaMaster))
             {
@@ -891,18 +934,25 @@ namespace ConfigMgrPrerequisitesTool
 
         private void DirectorySchemaValidate_Click(object sender, RoutedEventArgs e)
         {
-            bool validationStatus = activeDirectory.ValidateSchemaMasterRoleOwner(textBoxADSchemaServer.Text);
+            try
+            {
+                bool validationStatus = activeDirectory.ValidateSchemaMasterRoleOwner(textBoxADSchemaServer.Text);
 
-            if (validationStatus == true)
-            {
-                ShowMessageBox("SCHEMA MASTER", "Successfully validated specified domain controller as Schema Master role owner in the current forest.");
-                buttonADSchemaValidate.IsEnabled = false;
-                buttonADSchemaExtend.IsEnabled = true;
+                if (validationStatus == true)
+                {
+                    ShowMessageBox("SCHEMA MASTER", "Successfully validated specified domain controller as Schema Master role owner in the current forest.");
+                    buttonADSchemaValidate.IsEnabled = false;
+                    buttonADSchemaExtend.IsEnabled = true;
+                }
+                else
+                {
+                    ShowMessageBox("ERROR", "Specified server is not the Schema Master role owner in the current forest. Please specify the correct domain controller or use the automatically detection operation.");
+                    buttonADSchemaExtend.IsEnabled = false;
+                }
             }
-            else
+            catch (Exception ex)
             {
-                ShowMessageBox("ERROR", "Specified server is not the Schema Master role owner in the current forest. Please specify the correct domain controller or use the automatically detection operation.");
-                buttonADSchemaExtend.IsEnabled = false;
+                ShowMessageBox("ERROR", String.Format("{0}", ex.Message));
             }
         }
 
@@ -1007,7 +1057,16 @@ namespace ConfigMgrPrerequisitesTool
 
         private void DirectoryContainerDetect_Click(object sender, RoutedEventArgs e)
         {
-            string pdcEmulator = activeDirectory.GetPDCRoleOwner();
+            string pdcEmulator = string.Empty;
+
+            try
+            {
+                pdcEmulator = activeDirectory.GetPDCRoleOwner();
+            }
+            catch (Exception ex)
+            {
+                ShowMessageBox("ERROR", String.Format("{0}", ex.Message));
+            }
 
             if (!String.IsNullOrEmpty(pdcEmulator))
             {
@@ -1022,18 +1081,25 @@ namespace ConfigMgrPrerequisitesTool
 
         private void DirectoryContainerValidate_Click(object sender, RoutedEventArgs e)
         {
-            bool validationStatus = activeDirectory.ValidatePDCRoleOwner(textBoxADContainerServer.Text);
+            try
+            {
+                bool validationStatus = activeDirectory.ValidatePDCRoleOwner(textBoxADContainerServer.Text);
 
-            if (validationStatus == true)
-            {
-                ShowMessageBox("PDC Emulator", "Successfully validated specified domain controller as PDC Emulator role owner in the current forest.");
-                buttonADContainerValidate.IsEnabled = false;
-                buttonADContainerCreate.IsEnabled = true;
+                if (validationStatus == true)
+                {
+                    ShowMessageBox("PDC Emulator", "Successfully validated specified domain controller as PDC Emulator role owner in the current forest.");
+                    buttonADContainerValidate.IsEnabled = false;
+                    buttonADContainerCreate.IsEnabled = true;
+                }
+                else
+                {
+                    ShowMessageBox("ERROR", "Specified server is not the PDC Emulator role owner in the current forest. Please specify the correct domain controller or use the automatically detection operation.");
+                    buttonADContainerCreate.IsEnabled = false;
+                }
             }
-            else
+            catch (Exception ex)
             {
-                ShowMessageBox("ERROR", "Specified server is not the PDC Emulator role owner in the current forest. Please specify the correct domain controller or use the automatically detection operation.");
-                buttonADContainerCreate.IsEnabled = false;
+                ShowMessageBox("ERROR", String.Format("{0}", ex.Message));
             }
         }
 
@@ -1188,7 +1254,6 @@ namespace ConfigMgrPrerequisitesTool
         {
             System.Windows.Controls.CheckBox checkBox = (System.Windows.Controls.CheckBox)e.OriginalSource;
             DataGridRow dataGridRow = VisualTreeHelpers.FindAncestor<DataGridRow>(checkBox);
-
             DirectoryEngine row = (DirectoryEngine)dataGridRow.DataContext;
 
             switch (checkBox.IsChecked)
@@ -1226,6 +1291,10 @@ namespace ConfigMgrPrerequisitesTool
                                 if (result == true)
                                 {
                                     ShowMessageBox("SUCCESS", String.Format("Successfully added permissions for System Management container with Active Directory group {0}", row.DisplayName));
+                                }
+                                else
+                                {
+                                    ShowMessageBox("INFORMATION", String.Format("Active Directory group {0} is already added to the System Management container. Please verify the existing permissions.", row.DisplayName));
                                 }
                             }
                         }
@@ -1407,7 +1476,7 @@ namespace ConfigMgrPrerequisitesTool
         async private void ADKOfflineInstall_Click(object sender, RoutedEventArgs e)
         {
             //' Handle progress bar UI element
-            progressBarADKOnline.IsIndeterminate = true;
+            progressBarADKOffline.IsIndeterminate = true;
 
             string filePath = Path.Combine(textBoxADKOfflineLocation.Text, "adksetup.exe");
 
@@ -1437,7 +1506,37 @@ namespace ConfigMgrPrerequisitesTool
             }
 
             //' Handle progress bar UI element
-            progressBarADKOnline.IsIndeterminate = false;
+            progressBarADKOffline.IsIndeterminate = false;
+        }
+
+        private void SQLServerGeneralMaxMemory_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (textBoxSQLGeneralMaxMemory != null && buttonSQLGeneralMemoryConfigure != null)
+            {
+                if (textBoxSQLGeneralMaxMemory.Text.Length >= 1)
+                {
+                    buttonSQLGeneralMemoryConfigure.IsEnabled = true;
+                }
+                else
+                {
+                    buttonSQLGeneralMemoryConfigure.IsEnabled = false;
+                }
+            }
+        }
+
+        private void SQLServerGeneralMinMemory_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (textBoxSQLGeneralMinMemory != null && buttonSQLGeneralMemoryConfigure != null)
+            {
+                if (textBoxSQLGeneralMinMemory.Text.Length >= 1)
+                {
+                    buttonSQLGeneralMemoryConfigure.IsEnabled = true;
+                }
+                else
+                {
+                    buttonSQLGeneralMemoryConfigure.IsEnabled = false;
+                }
+            }
         }
 
         async private void SQLServerGeneralMemoryConfigure_Click(object sender, RoutedEventArgs e)
@@ -1451,12 +1550,20 @@ namespace ConfigMgrPrerequisitesTool
                     {
                         if (sqlConnection.State == ConnectionState.Open)
                         {
-                            bool result = await sqlEngine.SetSQLServerMemory(sqlConnection, textBoxSQLGeneralMaxMemory.Text, textBoxSQLGeneralMinMemory.Text);
+                            progressBarSQLMemory.IsIndeterminate = true;
+                            int result = await sqlEngine.SetSQLServerMemory(sqlConnection, textBoxSQLGeneralMaxMemory.Text, textBoxSQLGeneralMinMemory.Text);
 
-                            if (result == true)
+                            switch (result)
                             {
-                                ShowMessageBox("SUCCESS", "Successfully configured the SQL Server memory settings.");
+                                case 0:
+                                    ShowMessageBox("SUCCESS", "Successfully configured the SQL Server memory settings.");
+                                    break;
+                                case 1:
+                                    ShowMessageBox("ERROR", "An error occurred while configuring the SQL Server memory settings.");
+                                    break;
                             }
+
+                            progressBarSQLMemory.IsIndeterminate = false;
                         }
                         else
                         {
@@ -1501,6 +1608,51 @@ namespace ConfigMgrPrerequisitesTool
             else
             {
                 ShowMessageBox("CONNECTION ERROR", "Unable to detect an open SQL connection. Please go to Settings and connect to a SQL Server.");
+            }
+        }
+
+        private void SQLServerDatabaseCMSiteCode_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (textBoxSQLDatabaseCMSiteCode != null && buttonSQLDatabaseCMCreate != null)
+            {
+                if (textBoxSQLDatabaseCMSiteCode.Text.Length == 3)
+                {
+                    buttonSQLDatabaseCMCreate.IsEnabled = true;
+                }
+                else
+                {
+                    buttonSQLDatabaseCMCreate.IsEnabled = false;
+                }
+            }
+        }
+
+        private void SQLServerDatabaseCMInitDBSize_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (textBoxSQLDatabaseCMInitSize != null && buttonSQLDatabaseCMCreate != null)
+            {
+                if (textBoxSQLDatabaseCMInitSize.Text.Length >= 1)
+                {
+                    buttonSQLDatabaseCMCreate.IsEnabled = true;
+                }
+                else
+                {
+                    buttonSQLDatabaseCMCreate.IsEnabled = false;
+                }
+            }
+        }
+
+        private void SQLServerDatabaseCMInitLogSize_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (textBoxSQLDatabaseCMInitLogSize != null && buttonSQLDatabaseCMCreate != null)
+            {
+                if (textBoxSQLDatabaseCMInitLogSize.Text.Length >= 1)
+                {
+                    buttonSQLDatabaseCMCreate.IsEnabled = true;
+                }
+                else
+                {
+                    buttonSQLDatabaseCMCreate.IsEnabled = false;
+                }
             }
         }
 
@@ -1562,6 +1714,87 @@ namespace ConfigMgrPrerequisitesTool
             else
             {
                 ShowMessageBox("INVALID INPUT", "Please enter a numeric value for the initial size of the Configuration Manager database.");
+            }
+        }
+
+        private void SQLServerSSRSReportServerDB_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (textBoxSQLSSRSReportServerMaxSize != null && buttonSQLSSRSConfigure != null)
+            {
+                if (textBoxSQLSSRSReportServerMaxSize.Text.Length >= 1)
+                {
+                    buttonSQLSSRSConfigure.IsEnabled = true;
+                }
+                else
+                {
+                    buttonSQLSSRSConfigure.IsEnabled = false;
+                }
+            }
+        }
+
+        private void SQLServerSSRSReportServerTempDB_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (textBoxSQLSSRSReportServerTempDBMaxSize != null && buttonSQLSSRSConfigure != null)
+            {
+                if (textBoxSQLSSRSReportServerTempDBMaxSize.Text.Length >= 1)
+                {
+                    buttonSQLSSRSConfigure.IsEnabled = true;
+                }
+                else
+                {
+                    buttonSQLSSRSConfigure.IsEnabled = false;
+                }
+            }
+        }
+
+        async private void SQLServerSSRSConfigure_Click(object sender, RoutedEventArgs e)
+        {
+            //' Check if database initial size is of a numeric value
+            if (IsTextNumeric(textBoxSQLSSRSReportServerMaxSize.Text) == true)
+            {
+                if (IsTextNumeric(textBoxSQLSSRSReportServerTempDBMaxSize.Text) == true)
+                {
+                    if (sqlConnection != null)
+                    {
+                        if (sqlConnection.State == ConnectionState.Open)
+                        {
+                            progressBarSQLSSRS.IsIndeterminate = true;
+
+                            try
+                            {
+                                int returnValue = await sqlEngine.SetReportServerDBConfig(sqlConnection, textBoxSQLSSRSReportServerMaxSize.Text, textBoxSQLSSRSReportServerTempDBMaxSize.Text);
+
+                                switch (returnValue)
+                                {
+                                    case 0:
+                                        ShowMessageBox("SUCCESS", "Successfully configured the SSRS databases.");
+                                        break;
+                                    case 1:
+                                        ShowMessageBox("ERROR", "An unhandled error occured while configuring the SSRS databases.");
+                                        break;
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                ShowMessageBox("ERROR", String.Format("An unhandled error occured while configuring the SSRS databases. Error message: {0}", ex.Message));
+                            }
+
+                            progressBarSQLSSRS.IsIndeterminate = false;
+                        }
+                    }
+                    else
+                    {
+                        ShowMessageBox("CONNECTION ERROR", "Unable to detect an open SQL connection. Please go to Settings and connect to a SQL Server.");
+                    }
+                }
+                else
+                {
+                    ShowMessageBox("INVALID INPUT", "Please enter a numeric value for the maximum file size of the ReportServerTempDB database.");
+                }
+            }
+            else
+            {
+                ShowMessageBox("INVALID INPUT", "Please enter a numeric value for the maximum file size of the ReportServer database.");
             }
         }
 
@@ -1732,68 +1965,6 @@ namespace ConfigMgrPrerequisitesTool
 
             //' Handle progress bar UI element
             progressBarWSUSPost.IsIndeterminate = false;
-        }
-
-        private void Testing(object sender, DataTransferEventArgs e)
-        {
-            System.Windows.Controls.DataGrid grid = (System.Windows.Controls.DataGrid)e.OriginalSource;
-            if (grid.HasItems == true)
-            {
-                buttonADPermissionsConfigure.IsEnabled = true;
-            }
-
-            e.Handled = true;
-        }
-
-        async private void SQLServerSSRSConfigure_Click(object sender, RoutedEventArgs e)
-        {
-            //' Check if database initial size is of a numeric value
-            if (IsTextNumeric(textBoxSQLSSRSReportServerMaxSize.Text) == true)
-            {
-                if (IsTextNumeric(textBoxSQLSSRSReportServerTempDBMaxSize.Text) == true)
-                {
-                    if (sqlConnection != null)
-                    {
-                        if (sqlConnection.State == ConnectionState.Open)
-                        {
-                            progressBarSQLSSRS.IsIndeterminate = true;
-
-                            try
-                            {
-                                int returnValue = await sqlEngine.SetReportServerDBConfig(sqlConnection, textBoxSQLSSRSReportServerMaxSize.Text, textBoxSQLSSRSReportServerTempDBMaxSize.Text);
-
-                                switch (returnValue)
-                                {
-                                    case 0:
-                                        ShowMessageBox("SUCCESS", "Successfully configured the SSRS databases.");
-                                        break;
-                                    case 1:
-                                        ShowMessageBox("ERROR", "An unhandled error occured while configuring the SSRS databases.");
-                                        break;
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                ShowMessageBox("ERROR", String.Format("An unhandled error occured while configuring the SSRS databases. Error message: {0}", ex.Message));
-                            }
-
-                            progressBarSQLSSRS.IsIndeterminate = false;
-                        }
-                    }
-                    else
-                    {
-                        ShowMessageBox("CONNECTION ERROR", "Unable to detect an open SQL connection. Please go to Settings and connect to a SQL Server.");
-                    }
-                }
-                else
-                {
-                    ShowMessageBox("INVALID INPUT", "Please enter a numeric value for the maximum file size of the ReportServerTempDB database.");
-                }
-            }
-            else
-            {
-                ShowMessageBox("INVALID INPUT", "Please enter a numeric value for the maximum file size of the ReportServer database.");
-            }
         }
     }
 }

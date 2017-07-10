@@ -150,9 +150,9 @@ namespace ConfigMgrPrerequisitesTool
             return returnValue;
         }
 
-        async public Task<bool> SetSQLServerMemory(SqlConnection connection, string maxMemory, string minMemory)
+        async public Task<int> SetSQLServerMemory(SqlConnection connection, string maxMemory, string minMemory)
         {
-            bool returnValue = false;
+            int returnValue;
 
             //' Get executing assembly and read SQL script
             Assembly assembly = Assembly.GetExecutingAssembly();
@@ -170,19 +170,18 @@ namespace ConfigMgrPrerequisitesTool
                 sqlCommand.Parameters.Add("@MaxMem", SqlDbType.VarChar).Value = maxMemory;
                 sqlCommand.Parameters.Add("@MinMem", SqlDbType.VarChar).Value = minMemory;
 
+                //' Construct output param
+                sqlCommand.Parameters.Add("@ReturnValue", SqlDbType.Int, 4).Direction = ParameterDirection.Output;
+
                 try
                 {
                     //' Execute command asynchronous
-                    object executionResult = await sqlCommand.ExecuteScalarAsync();
-
-                    if (executionResult != null)
-                    {
-                        returnValue = true;
-                    }
+                    int dataReader = await sqlCommand.ExecuteNonQueryAsync();
+                    returnValue = (int)sqlCommand.Parameters["@ReturnValue"].Value;
                 }
                 catch (Exception ex)
                 {
-                    returnValue = false;
+                    returnValue = 1;
                 }
                 finally
                 {

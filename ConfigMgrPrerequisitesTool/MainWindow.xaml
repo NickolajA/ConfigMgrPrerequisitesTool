@@ -203,7 +203,7 @@
                     <TabControl x:Name="tabControlAD" HorizontalAlignment="Left" Height="456" Margin="14,9,0,0" VerticalAlignment="Top" Width="597" Background="#FF333337">
                         <TabItem x:Name="tabItemExtendAD"  Header="Schema" Background="#FF333337">
                             <Grid Background="#FF333337" Margin="0,0,0,-0.333">
-                                <GroupBox x:Name="groupBoxADSchemaMaster" Header="Detect Schema master domain controller and select application" HorizontalAlignment="Left" Margin="0,10,0,0" VerticalAlignment="Top" Width="585" Height="261"/>
+                                <GroupBox x:Name="groupBoxADSchemaMaster" Header="Detect Schema master domain controller and select application" HorizontalAlignment="Left" Margin="0,10,0,0" VerticalAlignment="Top" Width="585" Height="279"/>
                                 <CheckBox x:Name="checkBoxADSchemaCreds" Content="Use alternate credentials" Margin="339,370,70,0" VerticalAlignment="Top" Checked="DirectorySchemaCreds_Checked"/>
                                 <TextBox x:Name="textBoxADSchemaServer" HorizontalAlignment="Left" Height="23" Margin="29,89,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="346" TextChanged="DirectorySchemaDetect_TextChanged"/>
                                 <Button x:Name="buttonADSchemaDetect" Content="Detect" HorizontalAlignment="Left" Margin="483,88,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="DirectorySchemaDetect_Click"/>
@@ -218,6 +218,7 @@
                                 <Button x:Name="buttonADSchemaValidate" Content="Validate" HorizontalAlignment="Left" Margin="393,88,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="DirectorySchemaValidate_Click" IsEnabled="False"/>
                                 <Button x:Name="buttonADSchemaStage" Content="Stage" HorizontalAlignment="Left" Margin="483,185,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="DirectorySchemaStage_Click" IsEnabled="False"/>
                                 <ProgressBar x:Name="progressBarADSchemaStage" HorizontalAlignment="Left" Margin="30,226,0,0" VerticalAlignment="Top" Width="528" Height="14" Background="#FF252525"/>
+                                <Label x:Name="label" Content="NOTE: File will be staged to the root of the C:\ drive" HorizontalAlignment="Left" Margin="25,245,0,0" VerticalAlignment="Top"/>
                             </Grid>
                         </TabItem>
                         <TabItem x:Name="tabItemContainer" Header="Container" Background="#FF333337">
@@ -238,7 +239,7 @@
                                 <GroupBox x:Name="groupBoxADPermissionsGroupResults" Header="Search results" HorizontalAlignment="Left" Margin="0,156,0,0" VerticalAlignment="Top" Width="585" Height="177"/>
                                 <Label x:Name="labelADPermissionsGroup" Content="Search for a group and add it to the System Management container:" HorizontalAlignment="Left" Margin="23,53,0,0" VerticalAlignment="Top"/>
                                 <Button x:Name="buttonADPermissionsConfigure" Content="Configure" HorizontalAlignment="Left" Margin="506,365,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="DirectoryPermissionsConfigure_Click" IsEnabled="False"/>
-                                <DataGrid x:Name="dataGridADPermissions" HorizontalAlignment="Left" VerticalAlignment="Top" Height="147" Width="582" Margin="1,184,0,0" CanUserAddRows="False" SelectionMode="Single" AutoGenerateColumns="False" IsReadOnly="True" GridLinesVisibility="None" HeadersVisibility="Column" ColumnWidth="*" Background="#FF333337" LoadingRow="DataGrid_LoadingRow" VerticalScrollBarVisibility="Visible" SourceUpdated="Testing">
+                                <DataGrid x:Name="dataGridADPermissions" HorizontalAlignment="Left" VerticalAlignment="Top" Height="147" Width="582" Margin="1,184,0,0" CanUserAddRows="False" SelectionMode="Single" AutoGenerateColumns="False" IsReadOnly="True" GridLinesVisibility="None" HeadersVisibility="Column" ColumnWidth="*" Background="#FF333337" LoadingRow="DataGrid_LoadingRow" VerticalScrollBarVisibility="Visible">
                                     <DataGrid.Columns>
                                         <DataGridTemplateColumn Width="40" IsReadOnly="True">
                                             <DataGridTemplateColumn.CellTemplate>
@@ -323,12 +324,12 @@
                         <TabItem x:Name="tabItemSQLGeneral"  Header="General" Background="#FF333337">
                             <Grid Background="#FF333337">
                                 <GroupBox x:Name="groupBoxSQLGeneralMemory" Header="Configure SQL Server memory usage" HorizontalAlignment="Left" Margin="0,10,0,0" VerticalAlignment="Top" Width="585" Height="186"/>
-                                <TextBox x:Name="textBoxSQLGeneralMaxMemory" HorizontalAlignment="Left" Height="23" Margin="411,59,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="144" Text="8192"/>
-                                <TextBox x:Name="textBoxSQLGeneralMinMemory" HorizontalAlignment="Left" Height="23" Margin="411,99,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="144" Text="8192"/>
+                                <TextBox x:Name="textBoxSQLGeneralMaxMemory" HorizontalAlignment="Left" Height="23" Margin="411,59,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="144" Text="8192" TextChanged="SQLServerGeneralMaxMemory_TextChanged" MaxLength="8"/>
+                                <TextBox x:Name="textBoxSQLGeneralMinMemory" HorizontalAlignment="Left" Height="23" Margin="411,99,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="144" Text="8192" TextChanged="SQLServerGeneralMinMemory_TextChanged" MaxLength="8"/>
                                 <Button x:Name="buttonSQLGeneralMemoryConfigure" Content="Configure" HorizontalAlignment="Left" Margin="480,140,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="SQLServerGeneralMemoryConfigure_Click"/>
                                 <Label x:Name="labelSQLGeneralMaxMemory" Content="Specify the SQL Server maximum memory (MB):" HorizontalAlignment="Left" Margin="29,59,0,0" VerticalAlignment="Top"/>
                                 <Label x:Name="labelSQLGeneralMinMemory" Content="Specify the SQL Server minimum memory (MB):" HorizontalAlignment="Left" Margin="29,99,0,0" VerticalAlignment="Top"/>
-                                <ProgressBar x:Name="progressBarSQLDatabaseCM_Copy" HorizontalAlignment="Left" Margin="33,141,0,0" VerticalAlignment="Top" Width="422" Height="28" Background="#FF252525"/>
+                                <ProgressBar x:Name="progressBarSQLMemory" HorizontalAlignment="Left" Margin="33,141,0,0" VerticalAlignment="Top" Width="422" Height="28" Background="#FF252525"/>
 
                             </Grid>
                         </TabItem>
@@ -347,7 +348,7 @@
                             <Grid Background="#FF333337">
                                 <GroupBox x:Name="groupBoxSQLDatabaseCM" Header="Precreate Configuration Manager database" HorizontalAlignment="Left" Margin="0,10,0,0" VerticalAlignment="Top" Width="585" Height="202"/>
                                 <Label x:Name="labelSQLDatabaseCMSiteCode" Content="Enter desired Site Code for Configuration Manager:" HorizontalAlignment="Left" Margin="29,54,0,0" VerticalAlignment="Top"/>
-                                <TextBox x:Name="textBoxSQLDatabaseCMSiteCode" HorizontalAlignment="Left" Height="23" Margin="430,54,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120" Text="P01" MaxLength="3"/>
+                                <TextBox x:Name="textBoxSQLDatabaseCMSiteCode" HorizontalAlignment="Left" Height="23" Margin="430,54,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120" Text="P01" MaxLength="3" TextChanged="SQLServerDatabaseCMSiteCode_TextChanged"/>
                                 <ComboBox x:Name="comboBoxSQLDatabaseCMSplit" HorizontalAlignment="Left" Margin="475,90,0,0" VerticalAlignment="Top" Width="75" SelectedIndex="0">
                                     <System:Int32>1</System:Int32>
                                     <System:Int32>2</System:Int32>
@@ -358,18 +359,18 @@
                                 <Button x:Name="buttonSQLDatabaseCMCreate" Content="Create" HorizontalAlignment="Left" Margin="510,365,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="SQLServerDatabaseCMCreate_Click"/>
                                 <ProgressBar x:Name="progressBarSQLDatabaseCM" HorizontalAlignment="Left" Margin="0,365,0,0" VerticalAlignment="Top" Width="483" Height="28" Background="#FF252525"/>
                                 <Label x:Name="labelSQLDatabaseCMInitSize" Content="Set the initial size of the database files created (MB):" HorizontalAlignment="Left" Margin="29,127,0,0" VerticalAlignment="Top"/>
-                                <TextBox x:Name="textBoxSQLDatabaseCMInitSize" HorizontalAlignment="Left" Height="23" Margin="430,126,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120" Text="1024"/>
+                                <TextBox x:Name="textBoxSQLDatabaseCMInitSize" HorizontalAlignment="Left" Height="23" Margin="430,126,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120" Text="1024" TextChanged="SQLServerDatabaseCMInitDBSize_TextChanged"/>
                                 <Label x:Name="labelSQLDatabaseCMInitLogSize" Content="Set the initial size of the database log files created (MB):" HorizontalAlignment="Left" Margin="29,164,0,0" VerticalAlignment="Top"/>
-                                <TextBox x:Name="textBoxSQLDatabaseCMInitLogSize" HorizontalAlignment="Left" Height="23" Margin="430,163,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120" Text="1024"/>
+                                <TextBox x:Name="textBoxSQLDatabaseCMInitLogSize" HorizontalAlignment="Left" Height="23" Margin="430,163,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120" Text="1024" TextChanged="SQLServerDatabaseCMInitLogSize_TextChanged"/>
                             </Grid>
                         </TabItem>
                         <TabItem x:Name="tabItemSQLSSRS" Header="SSRS" Background="#FF333337">
                             <Grid Background="#FF333337">
                                 <GroupBox x:Name="groupBoxSiteSelection_Copy3" Header="Configure SQL Server Reporting Services" HorizontalAlignment="Left" Margin="0,10,0,0" VerticalAlignment="Top" Width="585" Height="127"/>
                                 <Label x:Name="labelSQLSSRSReportServerMaxSize" Content="Specify ReportServer database maximum file size (GB):" HorizontalAlignment="Left" Margin="25,54,0,0" VerticalAlignment="Top" Width="312"/>
-                                <TextBox x:Name="textBoxSQLSSRSReportServerMaxSize" HorizontalAlignment="Left" Height="23" Margin="430,54,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120" Text="20"/>
+                                <TextBox x:Name="textBoxSQLSSRSReportServerMaxSize" HorizontalAlignment="Left" Height="23" Margin="430,54,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120" Text="20" TextChanged="SQLServerSSRSReportServerDB_TextChanged"/>
                                 <Label x:Name="labelSQLSSRSReportServerTempDBMaxSize" Content="Specify ReportServerTempDB database maximum file size (GB):" HorizontalAlignment="Left" Margin="25,91,0,0" VerticalAlignment="Top" Width="385"/>
-                                <TextBox x:Name="textBoxSQLSSRSReportServerTempDBMaxSize" HorizontalAlignment="Left" Height="23" Margin="430,91,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120" Text="20"/>
+                                <TextBox x:Name="textBoxSQLSSRSReportServerTempDBMaxSize" HorizontalAlignment="Left" Height="23" Margin="430,91,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120" Text="20" TextChanged="SQLServerSSRSReportServerTempDB_TextChanged"/>
                                 <Button x:Name="buttonSQLSSRSConfigure" Content="Configure" HorizontalAlignment="Left" Margin="510,365,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="SQLServerSSRSConfigure_Click"/>
                                 <ProgressBar x:Name="progressBarSQLSSRS" HorizontalAlignment="Left" Margin="0,365,0,0" VerticalAlignment="Top" Width="483" Height="28" Background="#FF252525"/>
                             </Grid>

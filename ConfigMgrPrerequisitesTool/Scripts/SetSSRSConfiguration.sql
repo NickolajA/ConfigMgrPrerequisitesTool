@@ -1,6 +1,3 @@
--- ,@ReportServerMaxSizeGB FLOAT = 20
--- ,@ReportServerTempDBMaxSizeGB FLOAT = 20;
-
 DECLARE  @ReportServerDBConfig NVARCHAR(MAX)
 		,@ReportServerRecoveryModelConfig NVARCHAR(MAX)
 		,@ReportServerTempDBRecoveryModelConfig NVARCHAR(MAX)

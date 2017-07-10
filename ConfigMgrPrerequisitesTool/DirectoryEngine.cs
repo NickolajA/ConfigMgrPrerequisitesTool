@@ -7,6 +7,7 @@ using System.DirectoryServices.ActiveDirectory;
 using System.DirectoryServices;
 using System.Security.Principal;
 using System.ComponentModel;
+using System.Security.AccessControl;
 
 namespace ConfigMgrPrerequisitesTool
 {
@@ -42,6 +43,25 @@ namespace ConfigMgrPrerequisitesTool
                     OnPropertyChanged("ObjectSelected");
                 }
             }
+        }
+
+        public bool IsDomainUser()
+        {
+            bool returnValue = false;
+
+            //' Check if domain SID for current user exist (Returns TRUE for a machine that is on a workgroup)
+            if (WindowsIdentity.GetCurrent().User.AccountDomainSid != null)
+            {
+                SecurityIdentifier domainUsers = new SecurityIdentifier(WellKnownSidType.AccountDomainUsersSid, WindowsIdentity.GetCurrent().User.AccountDomainSid);
+                WindowsPrincipal currentUser = new WindowsPrincipal(WindowsIdentity.GetCurrent());
+
+                if (currentUser.IsInRole(domainUsers))
+                {
+                    returnValue = true;
+                }
+            }
+
+            return returnValue;
         }
 
         public string GetSchemaMasterRoleOwner()
@@ -104,8 +124,25 @@ namespace ConfigMgrPrerequisitesTool
             return directoryEntries;
         }
 
+        private bool IsACLRuleAdded(AuthorizationRuleCollection rules, string sid)
+        {
+            bool returnValue = false;
+
+            foreach (AuthorizationRule rule in rules)
+            {
+                if (rule.IdentityReference.Value == sid)
+                {
+                    returnValue = true;
+                }
+            }
+
+            return returnValue;
+        }
+
         public bool AddOrganizationalUnitACL(string groupSID)
         {
+            bool returnValue = false;
+
             //' Construct active directory searcher for system management container and define loaded properties
             string searchFilter = @"(&(ObjectCategory=container)(name=System Management))";
             DirectorySearcher searcher = new DirectorySearcher(searchFilter);
@@ -121,20 +158,27 @@ namespace ConfigMgrPrerequisitesTool
                 //' Retrieve directory entry for system management container
                 DirectoryEntry container = results.GetDirectoryEntry();
 
-                // get list of current ACL's to check if groupSID exists
+                // Check if groupSID exists
+                AuthorizationRuleCollection existingRules = container.ObjectSecurity.GetAccessRules(true, true, typeof(SecurityIdentifier));
+                bool groupExists = IsACLRuleAdded(existingRules, groupSID);
 
-                //' Construct new access rule and add it to the system management container
-                ActiveDirectoryAccessRule accessRule = new ActiveDirectoryAccessRule(new SecurityIdentifier(groupSID), ActiveDirectoryRights.GenericAll, System.Security.AccessControl.AccessControlType.Allow, ActiveDirectorySecurityInheritance.All, Guid.Empty);
-                container.ObjectSecurity.AddAccessRule(accessRule);
+                if (groupExists == false)
+                {
+                    //' Construct new access rule and add it to the system management container
+                    ActiveDirectoryAccessRule accessRule = new ActiveDirectoryAccessRule(new SecurityIdentifier(groupSID), ActiveDirectoryRights.GenericAll, System.Security.AccessControl.AccessControlType.Allow, ActiveDirectorySecurityInheritance.All, Guid.Empty);
+                    container.ObjectSecurity.AddAccessRule(accessRule);
 
-                //' Write only the DACL information back and don't change the ownership
-                container.Options.SecurityMasks = SecurityMasks.Dacl;
+                    //' Write only the DACL information back and don't change the ownership
+                    container.Options.SecurityMasks = SecurityMasks.Dacl;
 
-                //' Commit changes with new access rule
-                container.CommitChanges();
+                    //' Commit changes with new access rule
+                    container.CommitChanges();
+
+                    returnValue = true;
+                }
             }
 
-            return false;
+            return returnValue;
         }
 
         public string GetADObjectSID(string distinguishedName)
