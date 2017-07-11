@@ -283,13 +283,13 @@ namespace ConfigMgrPrerequisitesTool
             const int timeout = 1000;
             const string host = "developer.microsoft.com";
 
-            var ping = new Ping();
-            var buffer = new byte[32];
-            var pingOptions = new PingOptions();
+            Ping ping = new Ping();
+            PingOptions pingOptions = new PingOptions();
+            byte[] buffer = new byte[32];
 
             try
             {
-                var reply = ping.Send(host, timeout, buffer, pingOptions);
+                PingReply reply = ping.Send(host, timeout, buffer, pingOptions);
                 return (reply != null && reply.Status == IPStatus.Success);
             }
             catch (Exception)
@@ -1174,7 +1174,7 @@ namespace ConfigMgrPrerequisitesTool
                     {
                         bool result = await scriptEngine.NewADContainer(runspace);
 
-                        if (result == true)
+                        if (result == false)
                         {
                             ShowMessageBox("SYSTEM MANAGEMENT CONTAINER", "Successfully created the System Management container.");
                         }
