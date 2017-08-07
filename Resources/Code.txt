@@ -1,0 +1,10 @@
+                case "Primary Site":
+                    //string[] primarySite = new string[] { "NET-Framework-Core", "BITS", "BITS-IIS-Ext", "BITS-Compact-Server", "RDC", "WAS-Process-Model", "WAS-Config-APIs", "WAS-Net-Environment", "Web-Server", "Web-ISAPI-Ext", "Web-ISAPI-Filter", "Web-Net-Ext", "Web-Net-Ext45", "Web-ASP-Net", "Web-ASP-Net45", "Web-ASP", "Web-Windows-Auth", "Web-Basic-Auth", "Web-URL-Auth", "Web-IP-Security", "Web-Scripting-Tools", "Web-Mgmt-Service", "Web-Stat-Compression", "Web-Dyn-Compression", "Web-Metabase", "Web-WMI", "Web-HTTP-Redirect", "Web-Log-Libraries", "Web-HTTP-Tracing", "UpdateServices-RSAT", "UpdateServices-API", "UpdateServices-UI" };
+                    string[] primarySite = new string[] { "NET-Framework-45-Features", "NET-Framework-45-Core", "NET-Framework-Core", "BITS", "BITS-Compact-Server", "RDC", "UpdateServices-RSAT", "UpdateServices-API", "UpdateServices-UI" };
+                    featureList.AddRange(primarySite);
+                    break;
+                case "Central Administration Site":
+                    //string[] centralAdminSite = new string[] { "NET-Framework-Core", "BITS", "BITS-IIS-Ext", "BITS-Compact-Server", "RDC", "WAS-Process-Model", "WAS-Config-APIs", "WAS-Net-Environment", "Web-Server", "Web-ISAPI-Ext", "Web-ISAPI-Filter", "Web-Net-Ext", "Web-Net-Ext45", "Web-ASP-Net", "Web-ASP-Net45", "Web-ASP", "Web-Windows-Auth", "Web-Basic-Auth", "Web-URL-Auth", "Web-IP-Security", "Web-Scripting-Tools", "Web-Mgmt-Service", "Web-Stat-Compression", "Web-Dyn-Compression", "Web-Metabase", "Web-WMI", "Web-HTTP-Redirect", "Web-Log-Libraries", "Web-HTTP-Tracing", "UpdateServices-RSAT", "UpdateServices-API", "UpdateServices-UI" };
+                    string[] centralAdminSite = new string[] { "NET-Framework-45-Features", "NET-Framework-45-Core", "NET-Framework-Core", "BITS", "BITS-Compact-Server", "RDC", "UpdateServices-RSAT", "UpdateServices-API", "UpdateServices-UI" };
+                    featureList.AddRange(centralAdminSite);
+                    break;

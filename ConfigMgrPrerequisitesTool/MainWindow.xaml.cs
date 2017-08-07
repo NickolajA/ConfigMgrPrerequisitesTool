@@ -26,6 +26,7 @@ using System.Windows.Markup;
 using System.Globalization;
 using System.Collections.Specialized;
 using System.Net.NetworkInformation;
+using System.Management;
 
 namespace ConfigMgrPrerequisitesTool
 {
@@ -70,6 +71,7 @@ namespace ConfigMgrPrerequisitesTool
             //' Load data into controls
             LoadGridSitePreferenceFile();
 
+            //' Handle events
             directoryContainerCollection.CollectionChanged += OnCollectionChanged;
         }
 
@@ -91,11 +93,11 @@ namespace ConfigMgrPrerequisitesTool
             switch (selection)
             {
                 case "Primary Site":
-                    string[] primarySite = new string[] { "NET-Framework-Core", "BITS", "BITS-IIS-Ext", "BITS-Compact-Server", "RDC", "WAS-Process-Model", "WAS-Config-APIs", "WAS-Net-Environment", "Web-Server", "Web-ISAPI-Ext", "Web-ISAPI-Filter", "Web-Net-Ext", "Web-Net-Ext45", "Web-ASP-Net", "Web-ASP-Net45", "Web-ASP", "Web-Windows-Auth", "Web-Basic-Auth", "Web-URL-Auth", "Web-IP-Security", "Web-Scripting-Tools", "Web-Mgmt-Service", "Web-Stat-Compression", "Web-Dyn-Compression", "Web-Metabase", "Web-WMI", "Web-HTTP-Redirect", "Web-Log-Libraries", "Web-HTTP-Tracing", "UpdateServices-RSAT", "UpdateServices-API", "UpdateServices-UI" };
+                    string[] primarySite = new string[] { "NET-Framework-45-Features", "NET-Framework-45-Core", "NET-Framework-Core", "BITS", "BITS-Compact-Server", "RDC", "UpdateServices-RSAT", "UpdateServices-API", "UpdateServices-UI" };
                     featureList.AddRange(primarySite);
                     break;
                 case "Central Administration Site":
-                    string[] centralAdminSite = new string[] { "NET-Framework-Core", "BITS", "BITS-IIS-Ext", "BITS-Compact-Server", "RDC", "WAS-Process-Model", "WAS-Config-APIs", "WAS-Net-Environment", "Web-Server", "Web-ISAPI-Ext", "Web-ISAPI-Filter", "Web-Net-Ext", "Web-Net-Ext45", "Web-ASP-Net", "Web-ASP-Net45", "Web-ASP", "Web-Windows-Auth", "Web-Basic-Auth", "Web-URL-Auth", "Web-IP-Security", "Web-Scripting-Tools", "Web-Mgmt-Service", "Web-Stat-Compression", "Web-Dyn-Compression", "Web-Metabase", "Web-WMI", "Web-HTTP-Redirect", "Web-Log-Libraries", "Web-HTTP-Tracing", "UpdateServices-RSAT", "UpdateServices-API", "UpdateServices-UI" };
+                    string[] centralAdminSite = new string[] { "NET-Framework-45-Features", "NET-Framework-45-Core", "NET-Framework-Core", "BITS", "BITS-Compact-Server", "RDC", "UpdateServices-RSAT", "UpdateServices-API", "UpdateServices-UI" };
                     featureList.AddRange(centralAdminSite);
                     break;
                 case "Secondary Site":
@@ -253,6 +255,21 @@ namespace ConfigMgrPrerequisitesTool
             return applicationPath;
         }
 
+        public uint GetProductType()
+        {
+            uint productType = 0;
+
+            using (ManagementObjectSearcher searcher = new ManagementObjectSearcher("SELECT * FROM Win32_OperatingSystem"))
+            {
+                foreach (ManagementObject managementObject in searcher.Get())
+                {
+                    productType = (uint)managementObject.GetPropertyValue("ProductType");
+                }
+            }
+
+            return productType;
+        }
+
         async public Task DownloadFileAsync(string url, string location)
         {
             using (WebClient client = new WebClient())
@@ -260,6 +277,22 @@ namespace ConfigMgrPrerequisitesTool
                 client.DownloadProgressChanged += WebClient_DownloadProgressChanged;
                 client.DownloadFileCompleted += WebClient_DownloadFileCompleted;
                 await client.DownloadFileTaskAsync(new Uri(url), location);
+            }
+        }
+
+        private void WebClient_DownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
+        {
+            progressBarADKOnline.Maximum = (int)e.TotalBytesToReceive / 100;
+            progressBarADKOnline.Value = (int)e.BytesReceived / 100;
+        }
+
+        private void WebClient_DownloadFileCompleted(object sender, AsyncCompletedEventArgs e)
+        {
+            progressBarADKOnline.Value = 0;
+
+            if (e.Error == null)
+            {
+                ShowMessageBox("SUCCESS", "Successfully downloaded the selected setup file. Installation will now continue.");
             }
         }
 
@@ -307,36 +340,28 @@ namespace ConfigMgrPrerequisitesTool
             settings.DefaultButtonFocus = MessageDialogResult.Affirmative;
             settings.AnimateShow = true;
 
-            MessageDialogResult welcomeDialog = await this.ShowMessageAsync(title, message, MessageDialogStyle.Affirmative, settings);
+            MessageDialogResult dialogResult = await this.ShowMessageAsync(title, message, MessageDialogStyle.Affirmative, settings);
         }
 
-        private void ToggleSettingsSource_Click(object sender, RoutedEventArgs e)
+        async public void ShowPlatformBox(string title, string message, bool shutdown = false)
         {
-            if (toggleSettingsSource.IsChecked == true)
-            {
-                buttonSettingsSourceBrowse.IsEnabled = true;
-                textBoxSettingsSource.IsEnabled = true;
-            }
-            else
-            {
-                buttonSettingsSourceBrowse.IsEnabled = false;
-                textBoxSettingsSource.IsEnabled = false;
-            }
-        }
+            //' Construct new metro dialog settings
+            MetroDialogSettings settings = new MetroDialogSettings();
+            settings.AffirmativeButtonText = "Close";
+            settings.ColorScheme = MetroDialogColorScheme.Theme;
+            settings.DefaultButtonFocus = MessageDialogResult.Affirmative;
+            settings.AnimateShow = true;
 
-        private void WebClient_DownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
-        {
-            progressBarADKOnline.Maximum = (int)e.TotalBytesToReceive / 100;
-            progressBarADKOnline.Value = (int)e.BytesReceived / 100;
-        }
+            MessageDialogResult dialogResult = await this.ShowMessageAsync(title, message, MessageDialogStyle.Affirmative, settings);
 
-        private void WebClient_DownloadFileCompleted(object sender, AsyncCompletedEventArgs e)
-        {
-            progressBarADKOnline.Value = 0;
-
-            if (e.Error == null)
+            if (shutdown == true)
             {
-                ShowMessageBox("SUCCESS", "Successfully downloaded the selected setup file. Installation will now continue.");
+                switch (dialogResult)
+                {
+                    case MessageDialogResult.Affirmative:
+                        System.Windows.Application.Current.Shutdown();
+                        break;
+                }
             }
         }
 
@@ -357,6 +382,38 @@ namespace ConfigMgrPrerequisitesTool
             Regex regex = new Regex("^[0-9]+$");
 
             return regex.IsMatch(input);
+        }
+
+        private void MainWindow_ContentRendered(object sender, EventArgs e)
+        {
+            //' Check environment prerequisites
+            uint productType = GetProductType();
+            switch (productType)
+            {
+                case 0:
+                    ShowPlatformBox("UNHANDLED ERROR", "Unable to detect platform product type from WMI. Application will now terminate.", true);
+                    break;
+                case 1:
+                    ShowPlatformBox("UNSUPPORTED PLATFORM", "Unsupported platform detected. This application is not supported on a workstation. Application will now terminate.", true);
+                    break;
+                case 2:
+                    ShowPlatformBox("WARNING", "Unsupported platform type detect. It's not recommended to run this application on a domain controller.");
+                    break;
+            }
+        }
+
+        private void ToggleSettingsSource_Click(object sender, RoutedEventArgs e)
+        {
+            if (toggleSettingsSource.IsChecked == true)
+            {
+                buttonSettingsSourceBrowse.IsEnabled = true;
+                textBoxSettingsSource.IsEnabled = true;
+            }
+            else
+            {
+                buttonSettingsSourceBrowse.IsEnabled = false;
+                textBoxSettingsSource.IsEnabled = false;
+            }
         }
 
         private void SettingsCredsAdd_Click(object sender, RoutedEventArgs e)
@@ -547,6 +604,19 @@ namespace ConfigMgrPrerequisitesTool
             {
                 checkBoxSiteTypeRetryFailed.IsEnabled = true;
             }
+
+            switch (comboBoxSiteType.SelectedItem.ToString())
+            {
+                case "Primary Site":
+                    ShowMessageBox("COMPLETED", String.Format("Windows Feature installation has completed for site type {0}. Remember to install Windows Features for Management Point and Distribution Point roles within this site either on this site server or a remote site server.", comboBoxSiteType.SelectedItem.ToString()));
+                    break;
+                case "Central Administration Site":
+                    ShowMessageBox("COMPLETED", String.Format("Windows Feature installation has completed for site type {0}.", comboBoxSiteType.SelectedItem.ToString()));
+                    break;
+                case "Secondary Site":
+                    ShowMessageBox("COMPLETED", String.Format("Windows Feature installation has completed for site type {0}.", comboBoxSiteType.SelectedItem.ToString()));
+                    break;
+            }
         }
 
         private void SiteTypeRetry_Checked(object sender, RoutedEventArgs e)
@@ -696,6 +766,8 @@ namespace ConfigMgrPrerequisitesTool
                     }
                 }
             }
+
+            ShowMessageBox("COMPLETED", String.Format("Windows Feature installation has completed for site system role {0}.", comboBoxRolesSelection.SelectedItem.ToString()));
         }
 
         private void DataGrid_LoadingRow(object sender, DataGridRowEventArgs e)
