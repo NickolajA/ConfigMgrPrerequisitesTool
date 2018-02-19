@@ -67,10 +67,10 @@ namespace ConfigMgrPrerequisitesTool
                 psInstance.AddParameter("Name", featureName);
                 psInstance.AddParameter("Source", String.Format("{0}", source));
 
-                // Construct collection to hold pipeline stream objects
+                //' Construct collection to hold pipeline stream objects
                 PSDataCollection<PSObject> streamCollection = new PSDataCollection<PSObject>();
 
-                // Invoke execution on the pipeline
+                //' Invoke execution on the pipeline
                 PSDataCollection<PSObject> tResult = await Task.Factory.FromAsync(psInstance.BeginInvoke<PSObject, PSObject>(null, streamCollection), pResult => psInstance.EndInvoke(pResult));
 
                 foreach (PSObject psObject in streamCollection)
@@ -99,10 +99,10 @@ namespace ConfigMgrPrerequisitesTool
                 psInstance.AddCommand("Install-WindowsFeature");
                 psInstance.AddParameter("Name", featureName);
 
-                // Construct collection to hold pipeline stream objects
+                //' Construct collection to hold pipeline stream objects
                 PSDataCollection<PSObject> streamCollection = new PSDataCollection<PSObject>();
 
-                // Invoke execution on the pipeline
+                //' Invoke execution on the pipeline
                 PSDataCollection<PSObject> tResult = await Task.Factory.FromAsync(psInstance.BeginInvoke<PSObject, PSObject>(null, streamCollection), pResult => psInstance.EndInvoke(pResult));
 
                 foreach (PSObject psObject in streamCollection)

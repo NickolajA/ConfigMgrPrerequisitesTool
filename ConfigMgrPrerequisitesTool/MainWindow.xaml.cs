@@ -172,11 +172,11 @@ namespace ConfigMgrPrerequisitesTool
 
                     if (!String.IsNullOrEmpty(errorMessage))
                     {
-                        source.SetException(new InvalidOperationException(String.Format("The prerequisite files download process did not exit correctly or was unexpectedly terminated. Please verify the downloaded files and start the download process again if necessary. Error message: {0}", process.StandardError.ReadToEnd())));
+                        source.SetException(new InvalidOperationException(String.Format("The process did not exit correctly or was unexpectedly terminated. Refer to external log files or resources. Error message: {0}", process.StandardError.ReadToEnd())));
                     }
                     else
                     {
-                        source.SetException(new InvalidOperationException("The prerequisite files download process did not exit correctly or was unexpectedly terminated. Please verify the downloaded files and start the download process again if necessary."));
+                        source.SetException(new InvalidOperationException("The process did not exit correctly or was unexpectedly terminated. Refer to external log files or resources."));
                     }
                 }
                 else
@@ -1412,8 +1412,17 @@ namespace ConfigMgrPrerequisitesTool
 
         private void WorkerDoWork_ADKVersionOnlineSearch(object sender, DoWorkEventArgs e)
         {
+            List<WebEngine> links = new List<WebEngine>();
+
             //' Invoke web parser
-            List<WebEngine> links = webParser.LoadWindowsADKVersions();
+            try
+            {
+                links = webParser.LoadWindowsADKVersions();
+            }
+            catch (Exception ex)
+            {
+                ShowMessageBox("ERROR", "Unable to parse Windows ADK web page for information.");
+            }
 
             //' Return search results
             e.Result = links;

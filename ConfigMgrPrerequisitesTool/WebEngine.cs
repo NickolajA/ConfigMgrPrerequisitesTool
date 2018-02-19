@@ -26,21 +26,35 @@ namespace ConfigMgrPrerequisitesTool
 
             //' Construct new html objects and load web site into document
             HtmlWeb htmlWeb = new HtmlWeb();
-            HtmlDocument htmlDocument = htmlWeb.Load(@"https://developer.microsoft.com/en-us/windows/hardware/windows-assessment-deployment-kit");
+            HtmlDocument htmlDocument = htmlWeb.Load(@"https://docs.microsoft.com/en-us/windows-hardware/get-started/adk-install");
 
-            //' Determine link nodes that contains ADK in the innerText property
-            IEnumerable<HtmlNode> linkNodes = htmlDocument.DocumentNode.SelectNodes("//a[@href]").Where(node => node.InnerText.IndexOf("ADK") > -1);
+            //' Parse for latest ADK download
+            HtmlNode latestADK = htmlDocument.DocumentNode.SelectSingleNode("//*[@id='main']/p[4]/a");
+            string latestADKLink = latestADK.GetAttributeValue("href", "");
+            string latestADKText = latestADK.InnerText.Replace(@"&nbsp;", " ").Replace("Download the Windows ADK for", "").Trim();
 
-            //' Process each link node and construct a new WebEngine object for each ADK object
-            foreach (HtmlNode linkNode in linkNodes)
+            //' Create web link object
+            WebEngine latestLink = new WebEngine
             {
-                string linkNodeText = linkNode.InnerText.Replace(@"&nbsp;", "").Replace(@"\s{2,}", " ").Trim().ToString();
+                LinkName = latestADKText,
+                LinkValue = latestADKLink
+            };
+            linkList.Add(latestLink);
 
-                if (Regex.IsMatch(linkNodeText, WildCardToRegular("*Get*Windows*ADK*for*Windows*10*")) == true)
+            //' Parse for other ADK downloads
+            List<HtmlNode> otherADKList = new List<HtmlNode>();
+            HtmlNode otherADK = htmlDocument.DocumentNode.SelectSingleNode("//*[@id='other-adk-downloads']");
+            otherADKList.Add(otherADK.SelectSingleNode("//*[@id='main']/table/tbody/tr[1]/td[1]/a"));
+            otherADKList.Add(otherADK.SelectSingleNode("//*[@id='main']/table/tbody/tr[2]/td[1]/a"));
+
+            foreach (HtmlNode otherADKNode in otherADKList)
+            {
+                WebEngine link = new WebEngine
                 {
-                    WebEngine link = new WebEngine { LinkName = linkNodeText.Substring(4), LinkValue = String.Format("https://{0}", (linkNode.GetAttributeValue("href", string.Empty).Replace("//",""))) };
-                    linkList.Add(link);
-                }
+                    LinkName = otherADKNode.InnerText.Replace(@"&nbsp;", " ").Replace("Windows ADK for", "").Trim(),
+                    LinkValue = otherADKNode.GetAttributeValue("href", "")
+                };
+                linkList.Add(link);
             }
 
             return linkList;
