@@ -6,6 +6,7 @@ using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Xml;
 
 namespace ConfigMgrPrerequisitesTool
 {
@@ -17,6 +18,42 @@ namespace ConfigMgrPrerequisitesTool
         private static string WildCardToRegular(string value)
         {
             return "^" + Regex.Escape(value).Replace("\\*", ".*") + "$";
+        }
+
+        private XmlNodeList GetXMLNodeList(XmlDocument xmlDocument)
+        {
+            //' Select top level node
+            return xmlDocument.SelectNodes("//Downloads");
+        }
+
+        public List<WebEngine> LoadWindowsADKFromXMLFeed()
+        {
+            //' Construct new link list for all suupported Windows ADK versions
+            List<WebEngine> linkList = new List<WebEngine>();
+
+            //' Construct XML document and load from URL
+            XmlDocument feedDocument = new XmlDocument();
+            feedDocument.Load("http://www.scconfigmgr.com/windows-adk-feed.xml");
+
+            //' Get node list
+            XmlNodeList nodeList = GetXMLNodeList(feedDocument);
+
+            foreach (XmlNode topNode in nodeList)
+            {
+                if (topNode.HasChildNodes == true)
+                {
+                    foreach (XmlNode childNode in topNode.ChildNodes)
+                    {
+                        linkList.Add(new WebEngine
+                        {
+                            LinkName = childNode.Attributes["Name"].Value,
+                            LinkValue = childNode.Attributes["URL"].Value
+                        });
+                    }
+                }
+            }
+
+            return linkList;
         }
 
         public List<WebEngine> LoadWindowsADKVersions()

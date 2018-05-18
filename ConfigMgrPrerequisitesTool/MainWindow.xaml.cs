@@ -394,7 +394,7 @@ namespace ConfigMgrPrerequisitesTool
                     ShowPlatformBox("UNHANDLED ERROR", "Unable to detect platform product type from WMI. Application will now terminate.", true);
                     break;
                 case 1:
-                    ShowPlatformBox("UNSUPPORTED PLATFORM", "Unsupported platform detected. This application is not supported on a workstation. Application will now terminate.", true);
+                    ShowPlatformBox("UNSUPPORTED PLATFORM", "Unsupported platform detected. This application is not supported on a workstation. Application will now terminate.", false);
                     break;
                 case 2:
                     ShowPlatformBox("WARNING", "Unsupported platform type detect. It's not recommended to run this application on a domain controller.");
@@ -1417,11 +1417,11 @@ namespace ConfigMgrPrerequisitesTool
             //' Invoke web parser
             try
             {
-                links = webParser.LoadWindowsADKVersions();
+                links = webParser.LoadWindowsADKFromXMLFeed();
             }
             catch (Exception ex)
             {
-                ShowMessageBox("ERROR", "Unable to parse Windows ADK web page for information.");
+                throw new Exception(String.Format("Error occurred in background thread. Error message {0}", ex.Message));
             }
 
             //' Return search results
@@ -1430,17 +1430,24 @@ namespace ConfigMgrPrerequisitesTool
 
         private void WorkerCompleted_ADKVersionOnlineSearch(object sender, RunWorkerCompletedEventArgs e)
         {
-            //' Collect search results
-            List<WebEngine> links = (List<WebEngine>)e.Result;
-
-            if (links != null && links.Count >= 1)
+            if (e.Error == null)
             {
-                foreach (WebEngine link in links)
-                {
-                    collectionADKOnline.Add(new WebEngine { LinkName = link.LinkName, LinkValue = link.LinkValue});
-                }
+                //' Collect search results
+                List<WebEngine> links = (List<WebEngine>)e.Result;
 
-                comboBoxADKOnlineVersion.SelectedIndex = 0;
+                if (links != null && links.Count >= 1)
+                {
+                    foreach (WebEngine link in links)
+                    {
+                        collectionADKOnline.Add(new WebEngine { LinkName = link.LinkName, LinkValue = link.LinkValue });
+                    }
+
+                    comboBoxADKOnlineVersion.SelectedIndex = 0;
+                }
+            }
+            else
+            {
+                ShowMessageBox("ERROR", "Unable to parse Windows ADK feed for information. Make sure that you can access the following URL: http://www.scconfigmgr.com/windows-adk-feed.xml");
             }
 
             progressBarADKOnlineLoad.IsIndeterminate = false;
