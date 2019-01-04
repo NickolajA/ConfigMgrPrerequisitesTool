@@ -394,7 +394,7 @@ namespace ConfigMgrPrerequisitesTool
                     ShowPlatformBox("UNHANDLED ERROR", "Unable to detect platform product type from WMI. Application will now terminate.", true);
                     break;
                 case 1:
-                    ShowPlatformBox("UNSUPPORTED PLATFORM", "Unsupported platform detected. This application is not supported on a workstation. Application will now terminate.", false);
+                    ShowPlatformBox("UNSUPPORTED PLATFORM", "Unsupported platform detected. This application is not supported on a workstation. Application will now terminate.", true);
                     break;
                 case 2:
                     ShowPlatformBox("WARNING", "Unsupported platform type detect. It's not recommended to run this application on a domain controller.");
@@ -1439,7 +1439,11 @@ namespace ConfigMgrPrerequisitesTool
                 {
                     foreach (WebEngine link in links)
                     {
-                        collectionADKOnline.Add(new WebEngine { LinkName = link.LinkName, LinkValue = link.LinkValue });
+                        collectionADKOnline.Add(new WebEngine {
+                            LinkName = link.LinkName,
+                            LinkValue = link.LinkValue,
+                            LinkType = link.LinkType
+                        });
                     }
 
                     comboBoxADKOnlineVersion.SelectedIndex = 0;
@@ -1494,7 +1498,16 @@ namespace ConfigMgrPrerequisitesTool
             WebEngine link = (WebEngine)comboBoxADKOnlineVersion.SelectedItem;
 
             //' Combine download location with file name and download
-            string filePath = Path.Combine(textBoxADKOnlineLocation.Text, "adksetup.exe");
+            string filePath = string.Empty;
+            switch (link.LinkType)
+            {
+                case "Main":
+                    filePath = Path.Combine(textBoxADKOnlineLocation.Text, "adksetup.exe");
+                    break;
+                case "Addon":
+                    filePath = Path.Combine(textBoxADKOnlineLocation.Text, "adksetup_winpe.exe");
+                    break;
+            }
 
             try {
                 await DownloadFileAsync(link.LinkValue, filePath);
@@ -1510,12 +1523,23 @@ namespace ConfigMgrPrerequisitesTool
             //' Invoke ADK setup bootstrap file if download successful
             if (File.Exists(filePath))
             {
-                ProcessStartInfo processStartInfo = new ProcessStartInfo();
-                processStartInfo.FileName = filePath;
-                processStartInfo.Arguments = @"/norestart /q /ceip off /features OptionId.WindowsPreinstallationEnvironment OptionId.DeploymentTools OptionId.UserStateMigrationTool";
-                processStartInfo.UseShellExecute = false;
-                processStartInfo.CreateNoWindow = true;
-                processStartInfo.RedirectStandardError = true;
+                ProcessStartInfo processStartInfo = new ProcessStartInfo
+                {
+                    FileName = filePath,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    RedirectStandardError = true
+                };
+
+                switch (link.LinkType)
+                {
+                    case "Main":
+                        processStartInfo.Arguments = @"/norestart /quiet /ceip off /features OptionId.DeploymentTools OptionId.UserStateMigrationTool";
+                        break;
+                    case "Addon":
+                        processStartInfo.Arguments = @"/norestart /quiet /ceip off /features OptionId.WindowsPreinstallationEnvironment";
+                        break;
+                }
 
                 try
                 {
@@ -1573,10 +1597,22 @@ namespace ConfigMgrPrerequisitesTool
             {
                 ProcessStartInfo processStartInfo = new ProcessStartInfo();
                 processStartInfo.FileName = filePath;
-                processStartInfo.Arguments = @"/norestart /q /ceip off /features OptionId.WindowsPreinstallationEnvironment OptionId.DeploymentTools OptionId.UserStateMigrationTool";
                 processStartInfo.UseShellExecute = false;
                 processStartInfo.CreateNoWindow = true;
                 processStartInfo.RedirectStandardError = true;
+
+                switch (comboBoxADKOfflineType.SelectedItem)
+                {
+                    case "Setup Installer":
+                        processStartInfo.Arguments = @"/norestart /q /ceip off /features OptionId.DeploymentTools OptionId.UserStateMigrationTool";
+                        break;
+                    case "Setup Add-on":
+                        processStartInfo.Arguments = @"/norestart /q /ceip off /features OptionId.WindowsPreinstallationEnvironment";
+                        break;
+                    case "Setup Legacy":
+                        processStartInfo.Arguments = @"/norestart /q /ceip off /features OptionId.WindowsPreinstallationEnvironment OptionId.DeploymentTools OptionId.UserStateMigrationTool";
+                        break;
+                }
 
                 try
                 {

@@ -14,6 +14,7 @@ namespace ConfigMgrPrerequisitesTool
     {
         public string LinkName { get; set; }
         public string LinkValue { get; set; }
+        public string LinkType { get; set; }
 
         private static string WildCardToRegular(string value)
         {
@@ -47,7 +48,8 @@ namespace ConfigMgrPrerequisitesTool
                         linkList.Add(new WebEngine
                         {
                             LinkName = childNode.Attributes["Name"].Value,
-                            LinkValue = childNode.Attributes["URL"].Value
+                            LinkValue = childNode.Attributes["URL"].Value,
+                            LinkType = childNode.Attributes["Type"].Value
                         });
                     }
                 }

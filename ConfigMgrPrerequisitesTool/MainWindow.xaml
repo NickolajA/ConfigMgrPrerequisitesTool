@@ -8,7 +8,7 @@
         xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
         xmlns:System="clr-namespace:System;assembly=mscorlib" x:Class="ConfigMgrPrerequisitesTool.MainWindow"
         mc:Ignorable="d"
-        Title="ConfigMgr Prerequisites Tool 3.0.3" Height="500" Width="800" ResizeMode="NoResize" WindowStartupLocation="CenterScreen" ShowIconOnTitleBar="True" Icon="/Resources/Logo.ico" IconScalingMode="NoScaleSmallerFrame" ContentRendered="MainWindow_ContentRendered">
+        Title="ConfigMgr Prerequisites Tool 3.0.4" Height="500" Width="800" ResizeMode="NoResize" WindowStartupLocation="CenterScreen" ShowIconOnTitleBar="True" Icon="/Resources/Logo.ico" IconScalingMode="NoScaleSmallerFrame" ContentRendered="MainWindow_ContentRendered">
 
     <Grid Margin="0,0,0,0" Background="#FF252525">
         <TabControl x:Name="tabControlMain" HorizontalAlignment="Left" Height="471" VerticalAlignment="Top" Width="793" Margin="0,0,0,-0.333" TabStripPlacement="Left">
@@ -299,12 +299,18 @@
                         </TabItem>
                         <TabItem x:Name="tabItemADKOffline" Header="Offline" Background="#FF333337">
                             <Grid Background="#FF333337">
-                                <GroupBox x:Name="groupBoxADKOffline" Header="Install Windows ADK offline" Margin="0,10,6,0" VerticalAlignment="Top" Height="135"/>
+                                <GroupBox x:Name="groupBoxADKOffline" Header="Install Windows ADK offline" Margin="0,10,5.667,0" VerticalAlignment="Top" Height="160"/>
                                 <Button x:Name="buttonADKOfflineInstall" Content="Install" HorizontalAlignment="Left" Margin="506,365,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="ADKOfflineInstall_Click" IsEnabled="False"/>
                                 <ProgressBar x:Name="progressBarADKOffline" HorizontalAlignment="Left" Margin="0,365,0,0" VerticalAlignment="Top" Width="483" Height="28" Background="#FF252525"/>
                                 <Label x:Name="labelADKOfflineLocation" Content="Specify the local path containing the Windows ADK redistributable setup files:" HorizontalAlignment="Left" Margin="20,52,0,0" VerticalAlignment="Top"/>
                                 <TextBox x:Name="textBoxADKOfflineLocation" HorizontalAlignment="Left" Height="25" Margin="24,92,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="441" TextChanged="ADKOfflineLocation_TextChanged"/>
                                 <Button x:Name="buttonADKOfflineBrowse" Content="Browse" HorizontalAlignment="Left" Margin="485,91,0,0" VerticalAlignment="Top" Width="75" Style="{StaticResource AccentedSquareButtonStyle}" Click="ADKOfflineLocationBrowse_Click"/>
+                                <Label x:Name="labelADKOfflineType" Content="Specify the offline Windows ADK installer type:" HorizontalAlignment="Left" Margin="20,132,0,0" VerticalAlignment="Top"/>
+                                <ComboBox x:Name="comboBoxADKOfflineType" HorizontalAlignment="Left" Margin="376,133,0,0" VerticalAlignment="Top" Width="184" SelectedIndex="0">
+                                    <System:String>Setup Installer</System:String>
+                                    <System:String>Setup Add-on</System:String>
+                                    <System:String>Setup Legacy</System:String>
+                                </ComboBox>
                             </Grid>
                         </TabItem>
                     </TabControl>
