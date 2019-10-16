@@ -313,19 +313,13 @@ namespace ConfigMgrPrerequisitesTool
 
         private bool CanPingADKWebSite()
         {
-            const int timeout = 1000;
-            const string host = "developer.microsoft.com";
-
-            Ping ping = new Ping();
-            PingOptions pingOptions = new PingOptions();
-            byte[] buffer = new byte[32];
-
             try
             {
-                PingReply reply = ping.Send(host, timeout, buffer, pingOptions);
-                return (reply != null && reply.Status == IPStatus.Success);
+                using (WebClient client = new WebClient())
+                using (client.OpenRead("http://www.msftconnecttest.com/connecttest.txt"))
+                    return true;
             }
-            catch (Exception)
+            catch
             {
                 return false;
             }
