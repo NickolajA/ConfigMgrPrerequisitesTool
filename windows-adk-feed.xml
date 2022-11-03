@@ -1,0 +1,8 @@
+<Downloads>
+    <ADK Name="Windows 11 ADK version 22H2" URL="https://go.microsoft.com/fwlink/?linkid=2196127" Type="Main"/>
+    <ADK Name="Windows 11 ADK version 22H2 (WinPE add-on)" URL="https://go.microsoft.com/fwlink/?linkid=2196224" Type="Addon"/>
+    <ADK Name="Windows 11 ADK version 21H2" URL="https://go.microsoft.com/fwlink/?linkid=2165884" Type="Main"/>
+    <ADK Name="Windows 11 ADK version 21H2 (WinPE add-on)" URL="https://go.microsoft.com/fwlink/?linkid=2166133" Type="Addon"/>
+    <ADK Name="Windows 10 ADK version 2004" URL="https://go.microsoft.com/fwlink/?linkid=2120254" Type="Main"/>
+    <ADK Name="Windows 10 ADK version 2004 (WinPE add-on)" URL="https://go.microsoft.com/fwlink/?linkid=2120253" Type="Addon"/>
+</Downloads>
