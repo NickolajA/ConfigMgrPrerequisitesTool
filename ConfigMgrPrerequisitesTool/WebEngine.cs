@@ -29,12 +29,15 @@ namespace ConfigMgrPrerequisitesTool
 
         public List<WebEngine> LoadWindowsADKFromXMLFeed()
         {
+            //' Ensure TLS 1.2 is used
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+
             //' Construct new link list for all suupported Windows ADK versions
             List<WebEngine> linkList = new List<WebEngine>();
 
             //' Construct XML document and load from URL
             XmlDocument feedDocument = new XmlDocument();
-            feedDocument.Load("http://www.scconfigmgr.com/windows-adk-feed.xml");
+            feedDocument.Load("https://raw.githubusercontent.com/NickolajA/ConfigMgrPrerequisitesTool/master/windows-adk-feed.xml");
 
             //' Get node list
             XmlNodeList nodeList = GetXMLNodeList(feedDocument);

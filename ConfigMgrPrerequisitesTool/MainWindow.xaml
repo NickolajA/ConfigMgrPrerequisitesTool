@@ -8,7 +8,7 @@
         xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
         xmlns:System="clr-namespace:System;assembly=mscorlib" x:Class="ConfigMgrPrerequisitesTool.MainWindow"
         mc:Ignorable="d"
-        Title="ConfigMgr Prerequisites Tool 3.0.5" Height="500" Width="800" ResizeMode="NoResize" WindowStartupLocation="CenterScreen" ShowIconOnTitleBar="True" Icon="/Resources/Logo.ico" IconScalingMode="NoScaleSmallerFrame" ContentRendered="MainWindow_ContentRendered">
+        Title="ConfigMgr Prerequisites Tool 3.0.6" Height="500" Width="800" ResizeMode="NoResize" WindowStartupLocation="CenterScreen" ShowIconOnTitleBar="True" Icon="/Resources/Logo.ico" IconScalingMode="NoScaleSmallerFrame" ContentRendered="MainWindow_ContentRendered">
 
     <Grid Margin="0,0,0,0" Background="#FF252525">
         <TabControl x:Name="tabControlMain" HorizontalAlignment="Left" Height="471" VerticalAlignment="Top" Width="793" Margin="0,0,0,-0.333" TabStripPlacement="Left">
